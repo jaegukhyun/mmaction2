@@ -160,7 +160,7 @@ optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.00001)
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
 
-total_epochs = 200
+total_epochs = 20
 lr_config = dict(
     policy='step',
     step=[int(total_epochs * 0.75), int(total_epochs * 0.9)],
