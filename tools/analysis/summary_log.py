@@ -1,10 +1,6 @@
+import sys
 
-
-def summary_2d_log():
-    log_file = '/home/jaeguk/workspace/mmaction2/work_dirs/'
-    log_file += 'faster_rcnn_r50_fpn_2x_coco/'
-    log_file += '20220824_182250.log'
-
+def summary_2d_log(log_file):
     best_mAP = [0, 0]
     best_mAP50 = [0, 0]
     with open(log_file) as f:
@@ -22,12 +18,9 @@ def summary_2d_log():
         print(best_mAP)
         print(best_mAP50)
 
-def summary_3d_log():
-    log_file = '/home/jaeguk/workspace/mmaction2/work_dirs/'
-    log_file += 'ava/slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb/'
-    log_file += 'JHMDB-tiny/20220829_163210.log'
-
+def summary_3d_log(log_file):
     best_mAP = [0, 0]
+    catch = False
     with open(log_file) as f:
         lines = f.readlines()
         for line in lines:
@@ -38,8 +31,19 @@ def summary_3d_log():
                 mAP = float(mAP)
                 if mAP > best_mAP[1]:
                     best_mAP = [epoch, mAP]
+                    mAP_per_cat = []
+                    catch = True
+            if catch:
+                if 'PerformanceByCategory' in line:
+                    mAP_per_cat.append(line[:-1])
+                else:
+                    if len(mAP_per_cat) > 0:
+                        catch = False
 
     print(best_mAP)
+    for line in mAP_per_cat:
+        print(line)
 
 if __name__ == '__main__':
-    summary_3d_log()
+    args = sys.argv[1:]
+    summary_3d_log(args[0])

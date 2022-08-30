@@ -160,7 +160,7 @@ optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.00001)
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
 
-total_epochs = 200
+total_epochs = 20
 lr_config = dict(
     policy='step',
     step=[int(total_epochs * 0.75), int(total_epochs * 0.9)],
@@ -177,7 +177,7 @@ log_config = dict(
     ])
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = ('./work_dirs/ava/'
+work_dir = ('/home/jaeguk/workspace/logs/action_detection/'
             'slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb/'
             'ucf101-sampled_tiny')
 load_from = ('https://download.openmmlab.com/mmaction/detection/ava/slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb/slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb_20201217-ae225e97.pth')
