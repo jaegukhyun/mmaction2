@@ -11,6 +11,12 @@ from mmcv.utils import _BatchNorm
 from ...utils import get_root_logger
 from ..builder import BACKBONES
 
+try:
+    from mmdet.models import BACKBONES as MMDET_BACKBONES
+    mmdet_imported = True
+except (ImportError, ModuleNotFoundError):
+    mmdet_imported = False
+
 
 class SEModule(nn.Module):
 
@@ -522,3 +528,7 @@ class X3D(nn.Module):
             for m in self.modules():
                 if isinstance(m, _BatchNorm):
                     m.eval()
+
+
+if mmdet_imported:
+    MMDET_BACKBONES.register_module()(X3D)

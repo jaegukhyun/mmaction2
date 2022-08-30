@@ -18,7 +18,7 @@ def coco_eval(args):
     data_root = f'/home/jaeguk/workspace/data/{_dataset}/'
     cfg = Config.fromfile(args.det_config)
     cfg.data.test.ann_file = os.path.join(
-        data_root, 'annotations', 'instances_valid.json'
+        data_root, 'annotations', args.json_file
     )
     cfg.data.test.img_prefix = os.path.join(
         data_root, 'frames'
@@ -130,12 +130,12 @@ if __name__ == '__main__':
         #                 'faster_rcnn_r50_fpn_2x_coco/best_e19_mAP46.pth'
         det_score_thr = 0.75
         device = 'cuda:1'
-        get_eval_score = False
-        make_proposals_bytes = True
+        get_eval_score = True
+        make_proposals_bytes = False
         check_proposals = False
-        dataset = 'JHMDB'
+        dataset = 'ucf101-sampled'
         ext = 'jpg'
-        json_file = 'instances_valid.json'
+        json_file = 'instances_valid_20.json'
 
     for k, v in vars(args).items():
         if k[0] != '_':
