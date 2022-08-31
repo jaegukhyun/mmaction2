@@ -124,7 +124,7 @@ val_pipeline = [
 ]
 
 data = dict(
-    videos_per_gpu=1,
+    videos_per_gpu=2,
     workers_per_gpu=16,
     val_dataloader=dict(videos_per_gpu=1),
     test_dataloader=dict(videos_per_gpu=1),
@@ -174,8 +174,8 @@ log_level = 'INFO'
 work_dir = ('/home/jaeguk/workspace/logs/'
             'x3d_kinetics_pretrained_ava_rgb/ava/')
 load_from = (
-    "https://dl.fbaipublicfiles.com/pyslowfast/model_zoo/mvitv2/"
-    "pysf_video_models/MViTv2_S_16x4_k400_f302660347.pyth"
+    '/home/jaeguk/.cache/torch/hub/checkpoints/'
+    'MViTv2_S_16x4_k400_f302660347_mmaction2.pyth'
 )
 resume_from = None
 find_unused_parameters = False
