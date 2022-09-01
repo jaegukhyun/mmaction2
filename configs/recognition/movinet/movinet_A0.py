@@ -6,8 +6,8 @@
 
 root_dir = 'data'
 work_dir = None
-load_from = ("https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/"
-             "modelA0_statedict_v3?raw=true")
+load_from = ("/home/jaeguk/.cache/torch/hub/checkpoints/"
+             "modelA0_statedict_v3_mmaction2.pth")
 resume_from = None
 reset_layer_prefixes = ['cls_head']
 reset_layer_suffixes = None
