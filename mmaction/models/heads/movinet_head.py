@@ -60,6 +60,16 @@ class MoViNetHead(BaseHead):
                         bias=True)
         )
 
+        if causal:
+            self.cgap = TemporalCGAvgPool3D()
+
+        if self.casual:
+            pool = F.adaptive_avg_pool3d(x, (x.shape[2], 1, 1))
+            pool = self.cgap(pool)[:, :, -1:]
+        else:
+            pool = F.adaptive_avg_pool3d(x, 1)
+        self.pool = pool
+
     def init_weights(self):
         """Initiate the parameters from scratch."""
         normal_init(self.classifier, std=self.init_std)
@@ -74,6 +84,7 @@ class MoViNetHead(BaseHead):
             torch.Tensor: The classification scores for input samples.
         """
         # [N, in_channels, T, H, W]
+        x = self.pool(x)
         cls_score = self.classifier(x)
         cls_score = cls_score.flatten(1)
         # [N, num_classes]

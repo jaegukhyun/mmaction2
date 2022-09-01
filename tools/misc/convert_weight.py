@@ -1,10 +1,17 @@
 import torch
+import sys
 
-# Convert Facebook official weight to mmaction style weight
+# Convert pytorch weight to mmaction style weight
 
-weight = torch.load('/home/jaeguk/.cache/torch/hub/checkpoints/MViTv2_S_16x4_k400_f302660347.pyth', map_location='cpu')
-model_state = weight['model_state']
+weight_path = sys.argv[1]
+weight = torch.load(weight_path, map_location='cpu')
+try:
+    model_state = weight['model_state']
+except:
+    model_state = weight
 new_model_state = {}
 for key in model_state.keys():
     new_model_state['backbone.' + key] = model_state[key]
-torch.save(new_model_state, '/home/jaeguk/.cache/torch/hub/checkpoints/MViTv2_S_16x4_k400_f302660347_mmaction2.pyth')
+new_weight_path = weight_path.split('.p')[0] + '_mmaction2.p' + weight_path.split('.p')[1]
+print(weight_path, '==>', new_weight_path)
+torch.save(new_model_state, new_weight_path)

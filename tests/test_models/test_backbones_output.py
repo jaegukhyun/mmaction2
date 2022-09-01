@@ -1,6 +1,7 @@
 from mmaction.models.backbones.mvit import MViT
 from mmaction.models.backbones.x3d import X3D
 from mmaction.models.backbones.resnet3d_slowfast import ResNet3dSlowFast
+from mmaction.models.backbones.movinet import MoViNet
 import torch
 
 
@@ -47,6 +48,10 @@ def get_mvit():
     )
     return model
 
+def get_movinet():
+    model = MoViNet(name='MoViNetA0')
+    return model
+
 def main():
     rinput = torch.randn(4, 3, 32, 256, 256)
 
@@ -62,4 +67,10 @@ def main():
     model = get_mvit()
     print(model(rinput).shape)
 
+    print('MoViNet output shape')
+    model = get_movinet()
+    print(model(rinput).shape)
+
+if __name__ == '__main__':
+    main()
 

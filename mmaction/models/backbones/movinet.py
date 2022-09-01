@@ -11,11 +11,13 @@ from typing import Any, Callable, Optional, Tuple, Union
 from einops import rearrange
 from torch import nn, Tensor
 from yacs.config import CfgNode
+from ..builder import BACKBONES
 
 try:
-    from ..builder import BACKBONES
-except:
-    from mmaction.models.builder import BACKBONES
+    from mmdet.models import BACKBONES as MMDET_BACKBONES
+    mmdet_imported = True
+except (ImportError, ModuleNotFoundError):
+    mmdet_imported = False
 
 
 class Hardsigmoid(nn.Module):
@@ -522,7 +524,6 @@ class MoViNetBase(nn.Module):
                  cfg: "CfgNode",
                  causal: bool = True,
                  pretrained: bool = False,
-                 num_classes: int = 600,
                  conv_type: str = "3d",
                  tf_like: bool = False
                  ) -> None:
@@ -531,17 +532,14 @@ class MoViNetBase(nn.Module):
         causal: causal mode
         pretrained: pretrained models
         If pretrained is True:
-            num_classes is set to 600,
             conv_type is set to "3d" if causal is False,
                 "2plus1d" if causal is True
             tf_like is set to True
-        num_classes: number of classes for classifcation
         conv_type: type of convolution either 3d or 2plus1d
         tf_like: tf_like behaviour, basically same padding for convolutions
         """
-        if pretrained or num_classes > 0:
+        if pretrained:
             tf_like = True
-            num_classes = 600
             conv_type = "2plus1d" if causal else "3d"
         blocks_dic = OrderedDict()
 
@@ -586,8 +584,6 @@ class MoViNetBase(nn.Module):
             activation_layer=activation_layer
             )
 
-        if causal:
-            self.cgap = TemporalCGAvgPool3D()
         if pretrained:
             if causal:
                 if cfg.name not in ["A0", "A1", "A2"]:
@@ -597,18 +593,10 @@ class MoViNetBase(nn.Module):
                               .load_state_dict_from_url(cfg.stream_weights))
             else:
                 state_dict = torch.hub.load_state_dict_from_url(cfg.weights)
-            self.load_state_dict(state_dict)
+            self.load_state_dict(state_dict, strict=False)
         else:
             self.apply(self._weight_init)
         self.causal = causal
-
-    def avg(self, x: Tensor) -> Tensor:
-        if self.causal:
-            avg = F.adaptive_avg_pool3d(x, (x.shape[2], 1, 1))
-            avg = self.cgap(avg)[:, :, -1:]
-        else:
-            avg = F.adaptive_avg_pool3d(x, 1)
-        return avg
 
     @staticmethod
     def _weight_init(m):  # TODO check this
@@ -627,9 +615,6 @@ class MoViNetBase(nn.Module):
         x = self.conv1(x)
         x = self.blocks(x)
         x = self.conv7(x)
-        x = self.avg(x)
-        #x = self.classifier(x)
-        #x = x.flatten(1)
 
         return x
 
@@ -644,7 +629,7 @@ class MoViNetBase(nn.Module):
 
     def clean_activation_buffers(self) -> None:
         self.apply(self._clean_activation_buffers)
-    
+
     def init_weights(self):
         self.apply(self._init_weights)
 
@@ -662,15 +647,16 @@ class MoViNetBase(nn.Module):
 class MoViNet(MoViNetBase):
     def __init__(self,
                  name: str = "MoViNetA0",
-                 num_classes: bool =-1,
                  causal: bool = False):
         assert name in ["MoViNetA0", "MoViNetA1"]
 
         cfg = CfgNode()
         cfg.name = "A0"
         if name.endswith("A0"):
-            #cfg.weights = "https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/modelA0_statedict_v3?raw=true"
-            #cfg.stream_weights = "https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/modelA0_stream_statedict_v3?raw=true"
+            cfg.weights = ("https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/"
+                           "modelA0_statedict_v3?raw=true")
+            cfg.stream_weights = ("https://github.com/Atze00/MoViNet-pytorch/blob/main/"
+                                  "weights/modelA0_stream_statedict_v3?raw=true")
             cfg.conv1 = CfgNode()
             MoViNet.fill_conv(cfg.conv1, 3, 8, (1, 3, 3), (1, 2, 2), (0, 1, 1))
 
@@ -717,8 +703,10 @@ class MoViNet(MoViNetBase):
 
             cfg = CfgNode()
             cfg.name = "A1"
-            cfg.weights = "https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/modelA1_statedict_v3?raw=true"
-            cfg.stream_weights = "https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/modelA1_stream_statedict_v3?raw=true"
+            cfg.weights = ("https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/"
+                           "modelA1_statedict_v3?raw=true")
+            cfg.stream_weights = ("https://github.com/Atze00/MoViNet-pytorch/blob/main/"
+                                  "weights/modelA1_stream_statedict_v3?raw=true")
             cfg.conv1 = CfgNode()
             MoViNet.fill_conv(cfg.conv1, 3, 16, (1, 3, 3), (1, 2, 2), (0, 1, 1))
 
@@ -768,7 +756,7 @@ class MoViNet(MoViNetBase):
             cfg.dense9 = CfgNode()
             cfg.dense9.hidden_dim = 2048
 
-        super(MoViNet, self).__init__(cfg, num_classes=num_classes, causal=causal)
+        super(MoViNet, self).__init__(cfg, causal=causal)
 
     @staticmethod
     def fill_SE_config(conf, input_channels,
@@ -799,3 +787,7 @@ class MoViNet(MoViNetBase):
         conf.kernel_size = kernel_size
         conf.stride = stride
         conf.padding = padding
+
+
+if mmdet_imported:
+    MMDET_BACKBONES.register_module()(MoViNet)
