@@ -16,7 +16,7 @@ from .trn_head import TRNHead
 from .tsm_head import TSMHead
 from .tsn_head import TSNHead
 from .x3d_head import X3DHead
-from movinet_head import MoViNetHead
+from .movinet_head import MoViNetHead
 
 __all__ = [
     'TSNHead', 'I3DHead', 'BaseHead', 'TSMHead', 'SlowFastHead', 'SSNHead',

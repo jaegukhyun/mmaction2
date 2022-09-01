@@ -6,7 +6,8 @@
 
 root_dir = 'data'
 work_dir = None
-load_from = None
+load_from = ("/home/jaeguk/.cache/torch/hub/checkpoints/"
+             "modelA0_statedict_v3_mmaction2.pth")
 resume_from = None
 reset_layer_prefixes = ['cls_head']
 reset_layer_suffixes = None
@@ -74,9 +75,8 @@ img_norm_cfg = dict(
 model = dict(
     type='Recognizer3D',
     backbone=dict(
-        type='MoViNetBase',
-        name="MoViNetA0",
-        num_classes=600),
+        type='MoViNet',
+        name="MoViNetA0",),
     cls_head=dict(
         type='MoViNetHead',
         in_channels=480,
