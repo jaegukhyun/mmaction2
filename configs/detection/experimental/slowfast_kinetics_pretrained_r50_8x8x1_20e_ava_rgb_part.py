@@ -167,6 +167,8 @@ dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = ('./work_dirs/ava/'
             'slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb_part')
-load_from = ('https://download.openmmlab.com/mmaction/detection/ava/slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb/slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb_20201217-ae225e97.pth')
+load_from = ('https://download.openmmlab.com/mmaction/recognition/slowfast/'
+             'slowfast_r50_8x8x1_256e_kinetics400_rgb/'
+             'slowfast_r50_8x8x1_256e_kinetics400_rgb_20200716-73547d2b.pth')
 resume_from = None
 find_unused_parameters = False
