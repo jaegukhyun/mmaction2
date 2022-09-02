@@ -134,7 +134,7 @@ checkpoint_config = dict(interval=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')
 log_config = dict(
-    interval=1, hooks=[
+    interval=20, hooks=[
         dict(type='TextLoggerHook'),
     ])
 dist_params = dict(backend='nccl')
