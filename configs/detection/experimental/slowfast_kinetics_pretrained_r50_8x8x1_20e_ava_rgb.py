@@ -174,4 +174,3 @@ load_from = ('https://download.openmmlab.com/mmaction/recognition/slowfast/'
 resume_from = None
 find_unused_parameters = False
 
-gpu_ids = [1] # TODO: Set gpu ids porperly
