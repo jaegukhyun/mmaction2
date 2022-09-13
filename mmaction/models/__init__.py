@@ -24,6 +24,7 @@ from .recognizers import (AudioRecognizer, BaseRecognizer, Recognizer2D,
                           Recognizer3D)
 from .roi_extractors import SingleRoIExtractor3D
 from .skeleton_gcn import BaseGCN, SkeletonGCN
+from .detectors import YOLOXAVA
 
 __all__ = [
     'BACKBONES', 'HEADS', 'RECOGNIZERS', 'build_recognizer', 'build_head',
@@ -41,5 +42,5 @@ __all__ = [
     'FBOHead', 'LFBInferHead', 'TRNHead', 'NECKS', 'TimeSformer',
     'TimeSformerHead', 'DividedSpatialAttentionWithNorm',
     'DividedTemporalAttentionWithNorm', 'FFNWithNorm', 'ACRNHead', 'BaseGCN',
-    'SkeletonGCN', 'CBFocalLoss', 'SubBatchNorm3D'
+    'SkeletonGCN', 'CBFocalLoss', 'SubBatchNorm3D', 'YOLOXAVA'
 ]
