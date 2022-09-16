@@ -280,7 +280,7 @@ class AVADataset(BaseDataset):
                 shot_info=shot_info,
                 fps=self._FPS,
                 ann=ann,
-                timestamp_start=self.timstamp_start,
+                timestamp_start=self.timestamp_start,
                 timestamp_end=self.timestamp_end)
             video_infos.append(video_info)
 
