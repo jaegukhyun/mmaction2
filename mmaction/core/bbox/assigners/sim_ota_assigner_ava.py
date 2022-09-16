@@ -1,102 +1,117 @@
 import torch
 import torch.nn.functional as F
 
-from mmdet.core.bbox import AssignResult
-from mmdet.core.bbox.assigners import SimOTAAssigner
-from mmdet.core.bbox.iou_calculators import bbox_overlaps
-from mmdet.core.bbox.builder import BBOX_ASSIGNERS
+try:
+    from mmdet.core.bbox import AssignResult
+    from mmdet.core.bbox.assigners import SimOTAAssigner
+    from mmdet.core.bbox.iou_calculators import bbox_overlaps
+    from mmdet.core.bbox.builder import BBOX_ASSIGNERS
+    mmdet_imported = True
+except (ImportError, ModuleNotFoundError):
+    mmdet_imported = False
 
+if mmdet_imported:
 
-@BBOX_ASSIGNERS.register_module()
-class SimOTAAssignerAVA(SimOTAAssigner):
-    def _assign(self,
-                pred_scores,
-                priors,
-                decoded_bboxes,
-                gt_bboxes,
-                gt_labels,
-                gt_bboxes_ignore=None,
-                eps=1e-7):
-        """Assign gt to priors using SimOTA.
-        Args:
-            pred_scores (Tensor): Classification scores of one image,
-                a 2D-Tensor with shape [num_priors, num_classes]
-            priors (Tensor): All priors of one image, a 2D-Tensor with shape
-                [num_priors, 4] in [cx, xy, stride_w, stride_y] format.
-            decoded_bboxes (Tensor): Predicted bboxes, a 2D-Tensor with shape
-                [num_priors, 4] in [tl_x, tl_y, br_x, br_y] format.
-            gt_bboxes (Tensor): Ground truth bboxes of one image, a 2D-Tensor
-                with shape [num_gts, 4] in [tl_x, tl_y, br_x, br_y] format.
-            gt_labels (Tensor): Ground truth labels of one image, a Tensor
-                with shape [num_gts].
-            gt_bboxes_ignore (Tensor, optional): Ground truth bboxes that are
-                labelled as `ignored`, e.g., crowd boxes in COCO.
-            eps (float): A value added to the denominator for numerical
-                stability. Default 1e-7.
-        Returns:
-            :obj:`AssignResult`: The assigned result.
-        """
-        INF = 100000.0
-        num_gt = gt_bboxes.size(0)
-        num_bboxes = decoded_bboxes.size(0)
-        num_classes = gt_labels.size(1)
+    @BBOX_ASSIGNERS.register_module()
+    class SimOTAAssignerAVA(SimOTAAssigner):
+        def _assign(self,
+                    pred_scores,
+                    priors,
+                    decoded_bboxes,
+                    gt_bboxes,
+                    gt_labels,
+                    gt_bboxes_ignore=None,
+                    eps=1e-7):
+            """Assign gt to priors using SimOTA.
+            Args:
+                pred_scores (Tensor): Classification scores of one image,
+                    a 2D-Tensor with shape [num_priors, num_classes]
+                priors (Tensor): All priors of one image, a 2D-Tensor with shape
+                    [num_priors, 4] in [cx, xy, stride_w, stride_y] format.
+                decoded_bboxes (Tensor): Predicted bboxes, a 2D-Tensor with shape
+                    [num_priors, 4] in [tl_x, tl_y, br_x, br_y] format.
+                gt_bboxes (Tensor): Ground truth bboxes of one image, a 2D-Tensor
+                    with shape [num_gts, 4] in [tl_x, tl_y, br_x, br_y] format.
+                gt_labels (Tensor): Ground truth labels of one image, a Tensor
+                    with shape [num_gts].
+                gt_bboxes_ignore (Tensor, optional): Ground truth bboxes that are
+                    labelled as `ignored`, e.g., crowd boxes in COCO.
+                eps (float): A value added to the denominator for numerical
+                    stability. Default 1e-7.
+            Returns:
+                :obj:`AssignResult`: The assigned result.
+            """
+            INF = 100000.0
+            num_gt = gt_bboxes.size(0)
+            num_bboxes = decoded_bboxes.size(0)
+            num_classes = gt_labels.size(1)
 
-        # assign 0 by default
-        assigned_gt_inds = decoded_bboxes.new_full((num_bboxes, ),
-                                                   0,
-                                                   dtype=torch.long)
-        valid_mask, is_in_boxes_and_center = self.get_in_gt_and_in_center_info(
-            priors, gt_bboxes)
-        valid_decoded_bbox = decoded_bboxes[valid_mask]
-        valid_pred_scores = pred_scores[valid_mask]
-        num_valid = valid_decoded_bbox.size(0)
+            # assign 0 by default
+            assigned_gt_inds = decoded_bboxes.new_full((num_bboxes, ),
+                                                       0,
+                                                       dtype=torch.long)
+            valid_mask, is_in_boxes_and_center = self.get_in_gt_and_in_center_info(
+                priors, gt_bboxes)
+            valid_decoded_bbox = decoded_bboxes[valid_mask]
+            valid_pred_scores = pred_scores[valid_mask]
+            num_valid = valid_decoded_bbox.size(0)
 
-        if num_gt == 0 or num_bboxes == 0 or num_valid == 0:
-            # No ground truth or boxes, return empty assignment
-            max_overlaps = decoded_bboxes.new_zeros((num_bboxes, ))
-            if num_gt == 0:
-                # No truth, assign everything to background
-                assigned_gt_inds[:] = 0
-            if gt_labels is None:
-                assigned_labels = None
-            else:
-                assigned_labels = decoded_bboxes.new_full((num_bboxes, ),
-                                                          -1,
-                                                          dtype=torch.long)
+            if num_gt == 0 or num_bboxes == 0 or num_valid == 0:
+                # No ground truth or boxes, return empty assignment
+                max_overlaps = decoded_bboxes.new_zeros((num_bboxes, ))
+                if num_gt == 0:
+                    # No truth, assign everything to background
+                    assigned_gt_inds[:] = 0
+                if gt_labels is None:
+                    assigned_labels = None
+                else:
+                    assigned_labels = decoded_bboxes.new_full((num_bboxes, ),
+                                                              -1,
+                                                              dtype=torch.long)
+                return AssignResult(
+                    num_gt, assigned_gt_inds, max_overlaps, labels=assigned_labels)
+
+            pairwise_ious = bbox_overlaps(valid_decoded_bbox, gt_bboxes)
+            iou_cost = -torch.log(pairwise_ious + eps)
+
+            gt_onehot_label = gt_labels.to(torch.int64).unsqueeze(0).repeat(num_valid, 1, 1)
+
+            valid_pred_scores = valid_pred_scores.unsqueeze(1).repeat(1, num_gt, 1)
+            cls_cost = (
+                F.binary_cross_entropy(
+                    valid_pred_scores.to(dtype=torch.float32).sqrt_(),
+                    gt_onehot_label.to(dtype=torch.float32),
+                    reduction='none',
+                ).sum(-1).to(dtype=valid_pred_scores.dtype))
+
+            cost_matrix = (
+                cls_cost * self.cls_weight + iou_cost * self.iou_weight +
+                (~is_in_boxes_and_center) * INF)
+
+            matched_pred_ious, matched_gt_inds = \
+                self.dynamic_k_matching(
+                    cost_matrix, pairwise_ious, num_gt, valid_mask)
+
+            # convert to AssignResult format
+            assigned_gt_inds[valid_mask] = matched_gt_inds + 1
+            assigned_labels = assigned_gt_inds.new_full((num_bboxes, num_classes), -1)
+            assigned_labels[valid_mask] = gt_labels[matched_gt_inds].long()
+            max_overlaps = assigned_gt_inds.new_full((num_bboxes, ),
+                                                     -INF,
+                                                     dtype=torch.float32)
+            max_overlaps[valid_mask] = matched_pred_ious
+
             return AssignResult(
                 num_gt, assigned_gt_inds, max_overlaps, labels=assigned_labels)
 
-        pairwise_ious = bbox_overlaps(valid_decoded_bbox, gt_bboxes)
-        iou_cost = -torch.log(pairwise_ious + eps)
+else:
+    # Just define an empty class, so that __init__ can import it.
+    class SimOTAAssignerAVA:
 
-        gt_onehot_label = gt_labels.to(torch.int64).unsqueeze(0).repeat(num_valid, 1, 1)
-
-        valid_pred_scores = valid_pred_scores.unsqueeze(1).repeat(1, num_gt, 1)
-        cls_cost = (
-            F.binary_cross_entropy(
-                valid_pred_scores.to(dtype=torch.float32).sqrt_(),
-                gt_onehot_label.to(dtype=torch.float32),
-                reduction='none',
-            ).sum(-1).to(dtype=valid_pred_scores.dtype))
-
-        cost_matrix = (
-            cls_cost * self.cls_weight + iou_cost * self.iou_weight +
-            (~is_in_boxes_and_center) * INF)
-
-        matched_pred_ious, matched_gt_inds = \
-            self.dynamic_k_matching(
-                cost_matrix, pairwise_ious, num_gt, valid_mask)
-
-        # convert to AssignResult format
-        assigned_gt_inds[valid_mask] = matched_gt_inds + 1
-        assigned_labels = assigned_gt_inds.new_full((num_bboxes, num_classes), -1)
-        assigned_labels[valid_mask] = gt_labels[matched_gt_inds].long()
-        max_overlaps = assigned_gt_inds.new_full((num_bboxes, ),
-                                                 -INF,
-                                                 dtype=torch.float32)
-        max_overlaps[valid_mask] = matched_pred_ious
-
-        return AssignResult(
-            num_gt, assigned_gt_inds, max_overlaps, labels=assigned_labels)
-
-
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                'Failed to import `bbox2roi` from `mmdet.core.bbox`, '
+                'or failed to import `HEADS` from `mmdet.models`, '
+                'or failed to import `StandardRoIHead` from '
+                '`mmdet.models.roi_heads`. You will be unable to use '
+                '`SimOTAAssignerAVA`. ')

@@ -52,7 +52,7 @@ model = dict(
         num_classes=11,
         in_channels=96,
         feat_channels=96,
-        strides=[8]),
+        strides=[32]),
     train_cfg=dict(
         assigner=dict(
             type='SimOTAAssignerAVA',
@@ -67,8 +67,8 @@ dataset_type = 'JHMDBDataset'
 data_root = '/home/jaeguk/workspace/data/ucf101-sampled/frames'
 anno_root = '/home/jaeguk/workspace/data/ucf101-sampled/annotations'
 
-ann_file_train = f'{anno_root}/ucf101-sampled_train_50.csv'
-ann_file_val = f'{anno_root}/ucf101-sampled_valid_20.csv'
+ann_file_train = f'{anno_root}/ucf101-sampled_train.csv'
+ann_file_val = f'{anno_root}/ucf101-sampled_valid.csv'
 
 exclude_file_train = None
 exclude_file_val = None
@@ -82,7 +82,7 @@ img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_bgr=False)
 
 train_pipeline = [
-    dict(type='SampleAVAFrames', clip_len=32, frame_interval=2),
+    dict(type='SampleAVAFrames', clip_len=32, frame_interval=1),
     dict(type='RawFrameDecode'),
     dict(type='RandomRescale', scale_range=(256, 320)),
     dict(type='RandomCrop', size=256),
@@ -105,25 +105,23 @@ train_pipeline = [
 # The testing is w/o. any cropping / flipping
 val_pipeline = [
     dict(
-        type='SampleAVAFrames', clip_len=32, frame_interval=2, test_mode=True),
+        type='SampleAVAFrames', clip_len=32, frame_interval=1, test_mode=True),
     dict(type='RawFrameDecode'),
-    dict(type='Resize', scale=(256, 256)),
+    dict(type='Resize', scale=(256, 256), keep_ratio=False),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='FormatShape', input_format='NCTHW', collapse=True),
-    # Rename is needed to use mmdet detectors
     dict(type='Rename', mapping=dict(imgs='img')),
     dict(type='ToTensor', keys=['img']),
-    # dict(type='ToDataContainer', fields=[dict(key='proposals', stack=False)]),
     dict(
         type='Collect',
         keys=['img'],
-        meta_keys=['img_shape', 'scale_factor'],
+        meta_keys=['img_shape', 'scale_factor', 'entity_ids'],
         nested=True)
 ]
 
 data = dict(
-    videos_per_gpu=4,
-    workers_per_gpu=0,
+    videos_per_gpu=8,
+    workers_per_gpu=4,
     val_dataloader=dict(videos_per_gpu=1),
     test_dataloader=dict(videos_per_gpu=1),
     train=dict(
@@ -137,7 +135,8 @@ data = dict(
         data_prefix=data_root,
         filename_tmpl='{:05}.jpg',
         timestamp_start=1,
-        timestamp_end=80,
+        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        start_index=1,
         num_classes=11,
         fps=1
     ),
@@ -152,15 +151,15 @@ data = dict(
         data_prefix=data_root,
         filename_tmpl='{:05}.jpg',
         timestamp_start=1,
-        timestamp_end=60,
+        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        start_index=1,
         num_classes=11,
         fps=1
     )
 )
 data['test'] = data['val']
 
-optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.00001)
-# this lr is used for 8 gpus
+optimizer = dict(type='SGD', lr=1e-4, momentum=0.9, weight_decay=0.00001)
 
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
@@ -170,14 +169,14 @@ lr_config = dict(
     step=[10, 15],
     warmup='linear',
     warmup_by_epoch=True,
-    warmup_iters=5,
+    warmup_iters=1,
     warmup_ratio=0.1)
 total_epochs = 20
 checkpoint_config = dict(interval=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')
 log_config = dict(
-    interval=10, hooks=[
+    interval=20, hooks=[
         dict(type='TextLoggerHook'),
     ])
 dist_params = dict(backend='nccl')

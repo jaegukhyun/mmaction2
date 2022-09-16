@@ -1,5 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import copy
+import json
 import os
 import os.path as osp
 from collections import defaultdict
@@ -133,8 +134,16 @@ class AVADataset(BaseDataset):
         self.num_classes = num_classes
         self.filename_tmpl = filename_tmpl
         self.num_max_proposals = num_max_proposals
-        self.timestamp_start = timestamp_start
-        self.timestamp_end = timestamp_end
+        if isinstance(timestamp_start, int):
+            self.timestamp_start = timestamp_start
+        else:
+            with open(timestamp_start) as f:
+                self.timestamp_start = json.load(f)
+        if isinstance(timestamp_end, int):
+            self.timestamp_end = timestamp_end
+        else:
+            with open(timestamp_end) as f:
+                self.timestamp_end = json.load(f)
         self.logger = get_root_logger()
         super().__init__(
             ann_file,
@@ -270,7 +279,9 @@ class AVADataset(BaseDataset):
                 img_key=img_key,
                 shot_info=shot_info,
                 fps=self._FPS,
-                ann=ann)
+                ann=ann,
+                timestamp_start=self.timstamp_start,
+                timestamp_end=self.timestamp_end)
             video_infos.append(video_info)
 
         return video_infos
@@ -282,8 +293,6 @@ class AVADataset(BaseDataset):
         results['filename_tmpl'] = self.get_filename_tmpl(img_key)
         results['modality'] = self.modality
         results['start_index'] = self.start_index
-        results['timestamp_start'] = self.timestamp_start
-        results['timestamp_end'] = self.timestamp_end
 
         if self.proposals is not None:
             if img_key not in self.proposals:
@@ -317,8 +326,6 @@ class AVADataset(BaseDataset):
         results['filename_tmpl'] = self.get_filename_tmpl(img_key)
         results['modality'] = self.modality
         results['start_index'] = self.start_index
-        results['timestamp_start'] = self.timestamp_start
-        results['timestamp_end'] = self.timestamp_end
 
         if self.proposals is not None:
             if img_key not in self.proposals:
@@ -398,7 +405,6 @@ class AVADataset(BaseDataset):
 class JHMDBDataset(AVADataset):
     def get_filename_tmpl(self, img_key):
         return self.filename_tmpl
-    #TODO remove load_annotations and set start_index as 1
     def load_annotations(self):
         """Load AVA annotations."""
         video_infos = []
@@ -419,7 +425,7 @@ class JHMDBDataset(AVADataset):
 
                 entity_box = np.array(list(map(float, line_split[2:6])))
                 entity_id = int(line_split[7])
-                shot_info = (1, (self.timestamp_end - self.timestamp_start) *
+                shot_info = (0, (self.timestamp_end[video_id] - self.timestamp_start) *
                              self._FPS)
 
                 video_info = dict(
@@ -445,9 +451,11 @@ class JHMDBDataset(AVADataset):
                 video_id=video_id,
                 timestamp=int(timestamp),
                 img_key=img_key,
-                shot_info=shot_info,
+                shot_info=records_dict_by_img[img_key][0]['shot_info'],
                 fps=self._FPS,
-                ann=ann)
+                ann=ann,
+                timestamp_end=self.timestamp_end[video_id],
+                timestamp_start=self.timestamp_start)
             video_infos.append(video_info)
 
         return video_infos

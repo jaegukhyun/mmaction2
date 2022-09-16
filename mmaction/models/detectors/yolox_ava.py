@@ -1,5 +1,7 @@
 import torch
 
+from mmaction.core.bbox import bbox2result
+
 try:
     from mmdet.models.builder import DETECTORS
     from mmdet.models.detectors import YOLOX, SingleStageDetector
@@ -45,6 +47,49 @@ if mmdet_imported:
             self._progress_in_iter += 1
 
             return losses
+
+        def simple_test(self, img, img_metas, rescale=False):
+            """Test function without test-time augmentation.
+
+            Args:
+                img (torch.Tensor): Images with shape (N, C, H, W).
+                img_metas (list[dict]): List of image information.
+                rescale (bool, optional): Whether to rescale the results.
+                    Defaults to False.
+
+            Returns:
+                list[list[np.ndarray]]: BBox results of each image and classes.
+                    The outer list corresponds to each image. The inner list
+                    corresponds to each class.
+            """
+            feat = self.extract_feat(img)
+            results_list = self.bbox_head.simple_test(
+                feat, img_metas, rescale=rescale)
+            results_list = self.refine_results(results_list, img_metas)
+            bbox_results = [
+                bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
+                for det_bboxes, det_labels in results_list
+            ]
+            return bbox_results
+
+        def refine_results(self, results_list, img_metas):
+            out_list = []
+            for _det_bboxes, _det_labels in results_list:
+                if len(_det_bboxes) == 0:
+                    out_list.append((_det_bboxes, _det_labels))
+                    continue
+                score = _det_bboxes[:, 4]
+                det_bboxes = _det_bboxes[:, :4]
+                det_bboxes[:, 0] = det_bboxes[:, 0] / img_metas[0]['img_shape'][0]
+                det_bboxes[:, 2] = det_bboxes[:, 2] / img_metas[0]['img_shape'][0]
+                det_bboxes[:, 1] = det_bboxes[:, 1] / img_metas[0]['img_shape'][1]
+                det_bboxes[:, 3] = det_bboxes[:, 3] / img_metas[0]['img_shape'][1]
+                det_labels = torch.zeros(len(det_bboxes), self.bbox_head.num_classes)
+                for i in range(len(_det_labels)):
+                    det_labels[i, _det_labels[i]] = score[i]
+                out_list.append((det_bboxes, det_labels))
+            return out_list
+
 
 else:
     # Just define an empty class, so that __init__ can import it.

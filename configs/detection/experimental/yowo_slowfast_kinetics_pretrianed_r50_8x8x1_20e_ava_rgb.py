@@ -52,7 +52,7 @@ model = dict(
         num_classes=81,
         in_channels=96,
         feat_channels=96,
-        strides=[8]),
+        strides=[32]),
     train_cfg=dict(
         assigner=dict(
             type='SimOTAAssignerAVA',
@@ -107,13 +107,11 @@ val_pipeline = [
     dict(
         type='SampleAVAFrames', clip_len=32, frame_interval=2, test_mode=True),
     dict(type='RawFrameDecode'),
-    dict(type='Resize', scale=(256, 256)),
+    dict(type='Resize', scale=(256, 256), keep_ratio=False),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='FormatShape', input_format='NCTHW', collapse=True),
-    # Rename is needed to use mmdet detectors
     dict(type='Rename', mapping=dict(imgs='img')),
     dict(type='ToTensor', keys=['img']),
-    # dict(type='ToDataContainer', fields=[dict(key='proposals', stack=False)]),
     dict(
         type='Collect',
         keys=['img'],
@@ -123,7 +121,7 @@ val_pipeline = [
 
 data = dict(
     videos_per_gpu=8,
-    workers_per_gpu=2,
+    workers_per_gpu=4,
     val_dataloader=dict(videos_per_gpu=1),
     test_dataloader=dict(videos_per_gpu=1),
     train=dict(
@@ -146,8 +144,7 @@ data = dict(
         data_prefix=data_root))
 data['test'] = data['val']
 
-optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.00001)
-# this lr is used for 8 gpus
+optimizer = dict(type='SGD', lr=1e-4, momentum=0.9, weight_decay=0.00001)
 
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
@@ -157,7 +154,7 @@ lr_config = dict(
     step=[10, 15],
     warmup='linear',
     warmup_by_epoch=True,
-    warmup_iters=5,
+    warmup_iters=1,
     warmup_ratio=0.1)
 total_epochs = 20
 checkpoint_config = dict(interval=1)
@@ -174,4 +171,3 @@ work_dir = ('./work_dirs/ava/'
 load_from = ('/home/jaeguk/.cache/torch/hub/checkpoints/slowfast_ava_yolox_coco.pth')
 resume_from = None
 find_unused_parameters = False
-
