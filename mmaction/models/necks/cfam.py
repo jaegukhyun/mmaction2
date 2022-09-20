@@ -86,8 +86,14 @@ class CFAM(nn.Module):
                  neck_2d=None,
                  neck_3d=None):
         super().__init__()
-        self.neck_2d = MMDET_NECKS.build(neck_2d)
-        self.neck_3d = NECKS.build(neck_3d)
+        if neck_2d is not None:
+            self.neck_2d = MMDET_NECKS.build(neck_2d)
+        else:
+            self.neck_2d = None
+        if neck_3d is not None:
+            self.neck_3d = NECKS.build(neck_3d)
+        else:
+            self.neck_3d = None
         self.block = CFAMBlock(channels_2d+channels_3d, out_channels)
 
     def forward(self, x):

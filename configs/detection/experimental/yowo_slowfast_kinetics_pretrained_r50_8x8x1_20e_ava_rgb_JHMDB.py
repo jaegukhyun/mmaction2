@@ -49,7 +49,7 @@ model = dict(
             with_temporal_pool=True)),
     bbox_head=dict(
         type='YOLOXHeadAVA',
-        num_classes=11,
+        num_classes=22,
         in_channels=96,
         feat_channels=96,
         strides=[32]),
@@ -64,16 +64,16 @@ model = dict(
             iou_threshold=0.65)))
 
 dataset_type = 'JHMDBDataset'
-data_root = '/home/jaeguk/workspace/data/ucf101-sampled/frames'
-anno_root = '/home/jaeguk/workspace/data/ucf101-sampled/annotations'
+data_root = '/home/jaeguk/workspace/data/JHMDB/frames'
+anno_root = '/home/jaeguk/workspace/data/JHMDB/annotations'
 
-ann_file_train = f'{anno_root}/ucf101-sampled_train.csv'
-ann_file_val = f'{anno_root}/ucf101-sampled_valid.csv'
+ann_file_train = f'{anno_root}/JHMDB_train_105.csv'
+ann_file_val = f'{anno_root}/JHMDB_valid_42.csv'
 
 exclude_file_train = None
 exclude_file_val = None
 
-label_file = f'{anno_root}/ucf101-sampled_actionlist.pbtxt'
+label_file = f'{anno_root}/JHMDB_actionlist.pbtxt'
 
 proposal_file_train = None
 proposal_file_val = None
@@ -133,11 +133,11 @@ data = dict(
         proposal_file=proposal_file_train,
         person_det_score_thr=0.5,
         data_prefix=data_root,
-        filename_tmpl='{:05}.jpg',
+        filename_tmpl='{:05}.png',
         timestamp_start=1,
-        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        timestamp_end='/home/jaeguk/workspace/data/JHMDB/annotations/JHMDB_timestamp.json',
         start_index=1,
-        num_classes=11,
+        num_classes=22,
         fps=1
     ),
     val=dict(
@@ -149,24 +149,25 @@ data = dict(
         proposal_file=proposal_file_val,
         person_det_score_thr=0.5,
         data_prefix=data_root,
-        filename_tmpl='{:05}.jpg',
+        filename_tmpl='{:05}.png',
         timestamp_start=1,
-        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        timestamp_end='/home/jaeguk/workspace/data/JHMDB/annotations/JHMDB_timestamp.json',
         start_index=1,
-        num_classes=11,
+        num_classes=22,
         fps=1
     )
 )
 data['test'] = data['val']
 
-optimizer = dict(type='SGD', lr=1e-4, momentum=0.9, weight_decay=0.00001)
+optimizer = dict(type='Adam', lr=1e-4, weight_decay=0.00001)
 
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
 
 lr_config = dict(
     policy='step',
-    step=[10, 15],
+    step=[5, 10, 15],
+    gamma=0.5,
     warmup='linear',
     warmup_by_epoch=True,
     warmup_iters=1,

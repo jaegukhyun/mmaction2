@@ -1,63 +1,39 @@
 # model setting
 model = dict(
-    type='FastRCNN',
+    type='YOLOXAVA',
     backbone=dict(
-        type='ResNet3dSlowFast',
-        pretrained=None,
-        resample_rate=4,
-        speed_ratio=4,
-        channel_ratio=8,
-        slow_pathway=dict(
-            type='resnet3d',
-            depth=50,
-            pretrained=None,
-            lateral=True,
-            fusion_kernel=7,
-            conv1_kernel=(1, 7, 7),
-            dilations=(1, 1, 1, 1),
-            conv1_stride_t=1,
-            pool1_stride_t=1,
-            inflate=(0, 0, 1, 1),
-            spatial_strides=(1, 2, 2, 1)),
-        fast_pathway=dict(
-            type='resnet3d',
-            depth=50,
-            pretrained=None,
-            lateral=False,
-            base_channels=8,
-            conv1_kernel=(5, 7, 7),
-            conv1_stride_t=1,
-            pool1_stride_t=1,
-            spatial_strides=(1, 2, 2, 1))),
-    roi_head=dict(
-        type='AVARoIHead',
-        bbox_roi_extractor=dict(
-            type='SingleRoIExtractor3D',
-            roi_layer_type='RoIAlign',
-            output_size=8,
-            with_temporal_pool=True),
-        bbox_head=dict(
-            type='BBoxHeadAVA',
-            in_channels=2304,
-            num_classes=22,
-            multilabel=False,
-            dropout_ratio=0.5)),
+        type='YOWOBackbone',
+        backbone_3d=dict(type='X3D', gamma_w=1, gamma_b=2.25, gamma_d=2.2),
+        backbone_2d=dict(
+            type='CSPDarknet',
+            deepen_factor=0.33,
+            widen_factor=0.375),
+        num_frames=32),
+    neck=dict(
+        type='CFAM',
+        channels_2d=96,
+        channels_3d=432,
+        out_channels=96,
+        neck_2d=dict(
+            type='YOLOXPAFPN',
+            in_channels=[96, 192, 384],
+            out_channels=96,
+            num_csp_blocks=1)),
+    bbox_head=dict(
+        type='YOLOXHeadAVA',
+        num_classes=22,
+        in_channels=96,
+        feat_channels=96,
+        strides=[32]),
     train_cfg=dict(
-        rcnn=dict(
-            assigner=dict(
-                type='MaxIoUAssignerAVA',
-                pos_iou_thr=0.9,
-                neg_iou_thr=0.9,
-                min_pos_iou=0.9),
-            sampler=dict(
-                type='RandomSampler',
-                num=32,
-                pos_fraction=1,
-                neg_pos_ub=-1,
-                add_gt_as_proposals=True),
-            pos_weight=1.0,
-            debug=False)),
-    test_cfg=dict(rcnn=dict(action_thr=0.002)))
+        assigner=dict(
+            type='SimOTAAssignerAVA',
+            center_radius=2.5)),
+    test_cfg=dict(
+        score_thr=0.01,
+        nms=dict(
+            type='nms',
+            iou_threshold=0.65)))
 
 dataset_type = 'JHMDBDataset'
 data_root = '/home/jaeguk/workspace/data/JHMDB/frames'
@@ -71,8 +47,8 @@ exclude_file_val = None
 
 label_file = f'{anno_root}/JHMDB_actionlist.pbtxt'
 
-proposal_file_train = f'{anno_root}/JHMDB_dense_proposals_instances_train.pkl'
-proposal_file_val = f'{anno_root}/JHMDB_dense_proposals_instances_valid.pkl'
+proposal_file_train = None
+proposal_file_val = None
 
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_bgr=False)
@@ -87,33 +63,31 @@ train_pipeline = [
     dict(type='FormatShape', input_format='NCTHW', collapse=True),
     # Rename is needed to use mmdet detectors
     dict(type='Rename', mapping=dict(imgs='img')),
-    dict(type='ToTensor', keys=['img', 'proposals', 'gt_bboxes', 'gt_labels']),
+    dict(type='ToTensor', keys=['img', 'gt_bboxes', 'gt_labels']),
     dict(
         type='ToDataContainer',
         fields=[
-            dict(key=['proposals', 'gt_bboxes', 'gt_labels'], stack=False)
+            dict(key=['gt_bboxes', 'gt_labels'], stack=False)
         ]),
     dict(
         type='Collect',
-        keys=['img', 'proposals', 'gt_bboxes', 'gt_labels'],
-        meta_keys=['scores', 'entity_ids'])
+        keys=['img', 'gt_bboxes', 'gt_labels'],
+        meta_keys=['entity_ids'])
 ]
 # The testing is w/o. any cropping / flipping
 val_pipeline = [
     dict(
         type='SampleAVAFrames', clip_len=32, frame_interval=1, test_mode=True),
     dict(type='RawFrameDecode'),
-    dict(type='Resize', scale=(-1, 256)),
+    dict(type='Resize', scale=(256, 256), keep_ratio=False),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='FormatShape', input_format='NCTHW', collapse=True),
-    # Rename is needed to use mmdet detectors
     dict(type='Rename', mapping=dict(imgs='img')),
-    dict(type='ToTensor', keys=['img', 'proposals']),
-    dict(type='ToDataContainer', fields=[dict(key='proposals', stack=False)]),
+    dict(type='ToTensor', keys=['img']),
     dict(
         type='Collect',
-        keys=['img', 'proposals'],
-        meta_keys=['scores', 'img_shape'],
+        keys=['img'],
+        meta_keys=['img_shape', 'scale_factor', 'entity_ids'],
         nested=True)
 ]
 
@@ -157,34 +131,31 @@ data = dict(
 )
 data['test'] = data['val']
 
-optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.00001)
+optimizer = dict(type='Adam', lr=1e-4, weight_decay=0.00001)
 
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
 
 lr_config = dict(
     policy='step',
-    step=[10, 15],
+    step=[40],
     warmup='linear',
     warmup_by_epoch=True,
-    warmup_iters=5,
+    warmup_iters=1,
     warmup_ratio=0.1)
-total_epochs = 20
+total_epochs = 50
 checkpoint_config = dict(interval=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')
 log_config = dict(
-    interval=10, hooks=[
+    interval=20, hooks=[
         dict(type='TextLoggerHook'),
     ])
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = ('/home/jaeguk/workspace/logs/action_detection/'
-            'slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb/'
-            'JHMDB_tiny')
-load_from = ('https://download.openmmlab.com/mmaction/detection/ava/'
-             'slowfast_kinetics_pretrained_r50_8x8x1_cosine_10e_ava22_rgb/'
-             'slowfast_kinetics_pretrained_r50_8x8x1_cosine_10e_ava22_rgb-b987b516.pth')
+work_dir = ('./work_dirs/ava/'
+            'yowo_slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb')
+load_from = ('/home/jaeguk/.cache/torch/hub/checkpoints/x3d_kinetics_yolox_coco.pth')
 resume_from = None
 find_unused_parameters = False
 

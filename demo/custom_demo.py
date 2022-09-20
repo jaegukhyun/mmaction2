@@ -41,7 +41,7 @@ def main():
     pbtxt = os.path.join(data_root, dataset, 'annotations',
                         f'{dataset}_actionlist.pbtxt')
     json_file = os.path.join(data_root, dataset, 'annotations',
-                             'instances_train_50.json')
+                             'instances_valid.json')
     pkl = f'{dataset}_dense_proposals_instances_valid.pkl'
     save_root = os.path.join(data_root, dataset, 'demo')
     os.makedirs(save_root, exist_ok=True)
@@ -49,7 +49,7 @@ def main():
     label_map = get_action_label(pbtxt)
 
     _config = os.path.join(mmdir, 'configs', 'detection', 'experimental',
-        f'yowo_slowfast_kinetics_pretrianed_r50_8x8x1_20e_ava_rgb_{dataset}.py')
+        f'yowo_slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb_{dataset}.py')
     config = mmcv.Config.fromfile(_config)
     val_pipeline = config.data.val.pipeline
 
@@ -60,7 +60,7 @@ def main():
     model = build_detector(config.model, test_cfg=config.get('test_cfg'))
     checkpoint = os.path.join(logdir,
                               'yowo_slowfast_kinetics_pretrianed_r50_8x8x1_20e_ava_rgb_ucf101-sampled',
-                              'ucf_train_tmp', 'epoch_41.pth')
+                              'ucf_train', 'epoch_3.pth')
 
     load_checkpoint(model, checkpoint, map_location='cpu')
     model.cuda()
@@ -196,14 +196,15 @@ def main():
 
                         p1 = (int(x1 * new_w / w_ratio), int(y1 * new_h / h_ratio))
                         p2 = (int(x2 * new_w / w_ratio), int(y2 * new_h / h_ratio))
-                        cv.rectangle(cv_img, p1, p2, (0, 255, 0), 1)
-                        cv.putText(cv_img, f'{_label}: {score:.2f}', (p1[0] + 15, p1[1] + 15),
+                        if score > 0.3:
+                            cv.rectangle(cv_img, p1, p2, (0, 255, 0), 1)
+                            cv.putText(cv_img, f'{_label}: {score:.2f}', (p1[0] + 15, p1[1] + 15),
                                    cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv.LINE_AA)
                 print(f'[answer|perdict, score]: {action}|{_label}, {score:.2f}')
-                for annot in annotations:
-                    if annot['image_id'] == image_id:
-                        x1, y1, w, h = annot['bbox']
-                        cv.rectangle(cv_img, (int(x1), int(y1)), (int(x1 + w), int(y1 + h)), (255, 0, 0), 1)
+                #for annot in annotations:
+                #    if annot['image_id'] == image_id:
+                #        x1, y1, w, h = annot['bbox']
+                #        cv.rectangle(cv_img, (int(x1), int(y1)), (int(x1 + w), int(y1 + h)), (255, 0, 0), 1)
                 cv.imwrite(os.path.join(save_root, f'{action}_{idx}.jpg'), cv_img)
 
 

@@ -3,7 +3,10 @@ import sys
 
 
 def main(backbone_weight, object_detector_weight, dst):
-    backbone_state_dict = torch.load(backbone_weight)['state_dict']
+    try:
+        backbone_state_dict = torch.load(backbone_weight)['state_dict']
+    except:
+        backbone_state_dict = torch.load(backbone_weight)
     object_detector_state_dict = torch.load(object_detector_weight)['state_dict']
     new_state_dict = {}
 

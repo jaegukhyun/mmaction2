@@ -2,33 +2,38 @@
 model = dict(
     type='FastRCNN',
     backbone=dict(
-        type='ResNet3dSlowFast',
-        pretrained=None,
-        resample_rate=4,
-        speed_ratio=4,
-        channel_ratio=8,
-        slow_pathway=dict(
-            type='resnet3d',
-            depth=50,
-            pretrained=None,
-            lateral=True,
-            fusion_kernel=7,
-            conv1_kernel=(1, 7, 7),
-            dilations=(1, 1, 1, 1),
-            conv1_stride_t=1,
-            pool1_stride_t=1,
-            inflate=(0, 0, 1, 1),
-            spatial_strides=(1, 2, 2, 1)),
-        fast_pathway=dict(
-            type='resnet3d',
-            depth=50,
-            pretrained=None,
-            lateral=False,
-            base_channels=8,
-            conv1_kernel=(5, 7, 7),
-            conv1_stride_t=1,
-            pool1_stride_t=1,
-            spatial_strides=(1, 2, 2, 1))),
+        type='MViT',
+        spatial_size=256,
+        num_frames=32,
+        enable_detection=True,
+        zero_decay_pos_cls=False,
+        use_abs_pos=False,
+        rel_pos_spatial=True,
+        rel_pos_temporal=True,
+        depth=16,
+        num_heads=1,
+        embed_dim=96,
+        patch_kernel=(3, 7, 7),
+        patch_stride=(2, 4, 4),
+        patch_padding=(1, 3, 3),
+        mlp_ratio=4.0,
+        qkv_bias=True,
+        drop_path_rate=0.2,
+        norm="layernorm",
+        mode="conv",
+        cls_embed_on=True,
+        _dim_mul=[[1, 2.0], [3, 2.0], [14, 2.0]],
+        _head_mul=[[1, 2.0], [3, 2.0], [14, 2.0]],
+        pool_kvq_kernel=[3, 3, 3],
+        pool_kv_stride_adaptive=[1, 8, 8],
+        pool_q_stride=[[0, 1, 1, 1], [1, 1, 2, 2], [2, 1, 1, 1], [3, 1, 2, 2],
+                      [4, 1, 1, 1], [5, 1, 1, 1], [6, 1, 1, 1], [7, 1, 1, 1],
+                      [8, 1, 1, 1], [9, 1, 1, 1], [10, 1, 1, 1], [11, 1, 1, 1],
+                      [12, 1, 1, 1], [13, 1, 1, 1], [14, 1, 2, 2], [15, 1, 1, 1]],
+        dropout_rate=0.0,
+        dim_mul_in_att=True,
+        residual_pooling=True,
+    ),
     roi_head=dict(
         type='AVARoIHead',
         bbox_roi_extractor=dict(
@@ -38,9 +43,9 @@ model = dict(
             with_temporal_pool=True),
         bbox_head=dict(
             type='BBoxHeadAVA',
-            in_channels=2304,
-            num_classes=11,   # This part will be differnt with AVA
-            multilabel=False,  # This part will be differnt with AVA
+            in_channels=768,
+            num_classes=22,
+            multilabel=True,
             dropout_ratio=0.5)),
     train_cfg=dict(
         rcnn=dict(
@@ -60,19 +65,19 @@ model = dict(
     test_cfg=dict(rcnn=dict(action_thr=0.002)))
 
 dataset_type = 'JHMDBDataset'
-data_root = '/home/jaeguk/workspace/data/ucf101-sampled/frames'
-anno_root = '/home/jaeguk/workspace/data/ucf101-sampled/annotations'
+data_root = '/home/jaeguk/workspace/data/JHMDB/frames'
+anno_root = '/home/jaeguk/workspace/data/JHMDB/annotations'
 
-ann_file_train = f'{anno_root}/ucf101-sampled_train_50.csv'
-ann_file_val = f'{anno_root}/ucf101-sampled_valid_20.csv'
+ann_file_train = f'{anno_root}/JHMDB_train_105.csv'
+ann_file_val = f'{anno_root}/JHMDB_valid_42.csv'
 
 exclude_file_train = None
 exclude_file_val = None
 
-label_file = f'{anno_root}/ucf101-sampled_actionlist.pbtxt'
+label_file = f'{anno_root}/JHMDB_actionlist.pbtxt'
 
-proposal_file_train = f'{anno_root}/ucf101-sampled_dense_proposals_instances_train.pkl'
-proposal_file_val = f'{anno_root}/ucf101-sampled_dense_proposals_instances_valid.pkl'
+proposal_file_train = f'{anno_root}/JHMDB_dense_proposals_instances_train.pkl'
+proposal_file_val = f'{anno_root}/JHMDB_dense_proposals_instances_valid.pkl'
 
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_bgr=False)
@@ -133,9 +138,9 @@ data = dict(
         data_prefix=data_root,
         filename_tmpl='{:05}.jpg',
         timestamp_start=1,
-        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        timestamp_end='/home/jaeguk/workspace/data/JHMDB/annotations/JHMDB_timestamp.json',
         start_index=1,
-        num_classes=11,
+        num_classes=22,
         fps=1
     ),
     val=dict(
@@ -149,9 +154,9 @@ data = dict(
         data_prefix=data_root,
         filename_tmpl='{:05}.jpg',
         timestamp_start=1,
-        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        timestamp_end='/home/jaeguk/workspace/data/JHMDB/annotations/JHMDB_timestamp.json',
         start_index=1,
-        num_classes=11,
+        num_classes=22,
         fps=1
     )
 )
@@ -162,14 +167,14 @@ optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.00001)
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
 
-total_epochs = 20
 lr_config = dict(
     policy='step',
-    step=[int(total_epochs * 0.75), int(total_epochs * 0.9)],
+    step=[10, 15],
     warmup='linear',
     warmup_by_epoch=True,
     warmup_iters=5,
     warmup_ratio=0.1)
+total_epochs = 20
 checkpoint_config = dict(interval=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')
@@ -180,10 +185,11 @@ log_config = dict(
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = ('/home/jaeguk/workspace/logs/action_detection/'
-            'slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb/'
-            'ucf101-sampled_tiny')
-load_from = ('https://download.openmmlab.com/mmaction/detection/ava/'
-             'slowfast_kinetics_pretrained_r50_8x8x1_cosine_10e_ava22_rgb/'
-             'slowfast_kinetics_pretrained_r50_8x8x1_cosine_10e_ava22_rgb-b987b516.pth')
+            'mvit_kinetics_pretrained_ava_rgb/ava/')
+load_from = (
+    '/home/jaeguk/.cache/torch/hub/checkpoints/'
+    'MViTv2_S_16x4_k400_f302660347_mmaction2.pyth'
+)
 resume_from = None
 find_unused_parameters = False
+

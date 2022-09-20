@@ -22,9 +22,12 @@ def summary_3d_log(log_file):
     mAPs = []
     best_mAP = [0, 0]
     catch = False
+    time = None
     with open(log_file) as f:
         lines = f.readlines()
         for line in lines:
+            if 'Time' in line:
+                time = line
             if 'mAP@0.5IOU:' in line:
                 mAP = line[:-1].split('mAP@0.5IOU:')[1]
                 epoch = line.split('[')[1].split(']')[0]
@@ -42,6 +45,7 @@ def summary_3d_log(log_file):
                     if len(mAP_per_cat) > 0:
                         catch = False
 
+    print(time)
     print(mAPs)
     print(best_mAP)
     for line in mAP_per_cat:
