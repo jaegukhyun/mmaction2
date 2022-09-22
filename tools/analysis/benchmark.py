@@ -17,7 +17,7 @@ def parse_args():
         description='MMAction2 benchmark a recognizer')
     parser.add_argument('config', help='test config file path')
     parser.add_argument(
-        '--log-interval', default=10, help='interval of logging')
+        '--log-interval', type=int, default=10, help='interval of logging')
     parser.add_argument(
         '--fuse-conv-bn',
         action='store_true',
@@ -34,7 +34,7 @@ def main():
     # set cudnn_benchmark
     if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
-    cfg.model.backbone.pretrained = None
+    #cfg.model.backbone.pretrained = None
     cfg.data.test.test_mode = True
 
     # build the dataloader

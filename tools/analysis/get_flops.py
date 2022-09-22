@@ -4,6 +4,7 @@ import argparse
 from mmcv import Config
 
 from mmaction.models import build_recognizer
+from mmaction.models import build_model
 
 try:
     from mmcv.cnn import get_model_complexity_info
@@ -43,13 +44,15 @@ def main():
         input_shape = tuple(args.shape)
     else:
         raise ValueError('invalid input shape')
+    print(input_shape)
 
     cfg = Config.fromfile(args.config)
-    model = build_recognizer(
+    model = build_model(
         cfg.model,
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
 
+    model.forward = model.forward_dummy
     model = model.cuda()
     model.eval()
 
