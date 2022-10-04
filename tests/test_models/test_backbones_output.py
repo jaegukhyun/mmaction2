@@ -1,7 +1,6 @@
-from mmaction.models.backbones.mvit import MViT
-from mmaction.models.backbones.x3d import X3D
-from mmaction.models.backbones.resnet3d_slowfast import ResNet3dSlowFast
-from mmaction.models.backbones.movinet import MoViNet
+from mmaction.models.backbones import *
+from mmaction.models.necks import *
+
 import torch
 
 
@@ -52,12 +51,21 @@ def get_movinet():
     model = MoViNet(name='MoViNetA0')
     return model
 
+def get_yowo():
+    from mmdet.models.backbones import CSPDarknet
+
+    backbone_2d = CSPDarknet(deepen_factor=0.33, widen_factor=0.375)
+    backbone_3d = ResNet3dSlowFast(pretrained=None)
+
+    model = YOWOBackbone(backbone_2d, backbone_3d, 32)
+    return model
+
 def main():
     rinput = torch.randn(4, 3, 32, 256, 256)
 
     print('SlowFast output shape')
     model = get_slowfast()
-    print(model(rinput)[0].shape)
+    print(model(rinput)[0].shape, model(rinput)[1].shape)
 
     print('X3D output shape')
     model = get_x3d()
@@ -69,6 +77,10 @@ def main():
 
     print('MoViNet output shape')
     model = get_movinet()
+    print(model(rinput).shape)
+
+    print('YOWO output shape')
+    model = get_yowo()
     print(model(rinput).shape)
 
 if __name__ == '__main__':

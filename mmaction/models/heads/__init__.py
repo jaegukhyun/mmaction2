@@ -17,10 +17,11 @@ from .tsm_head import TSMHead
 from .tsn_head import TSNHead
 from .x3d_head import X3DHead
 from .movinet_head import MoViNetHead
+from .yolox_head_ava import YOLOXHeadAVA
 
 __all__ = [
     'TSNHead', 'I3DHead', 'BaseHead', 'TSMHead', 'SlowFastHead', 'SSNHead',
     'TPNHead', 'AudioTSNHead', 'X3DHead', 'BBoxHeadAVA', 'AVARoIHead',
     'FBOHead', 'LFBInferHead', 'TRNHead', 'TimeSformerHead', 'ACRNHead',
-    'STGCNHead', 'MoViNetHead'
+    'STGCNHead', 'MoViNetHead', 'YOLOXHeadAVA'
 ]

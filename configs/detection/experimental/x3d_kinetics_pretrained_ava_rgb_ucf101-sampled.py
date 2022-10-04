@@ -1,34 +1,7 @@
 # model setting
 model = dict(
     type='FastRCNN',
-    backbone=dict(
-        type='ResNet3dSlowFast',
-        pretrained=None,
-        resample_rate=4,
-        speed_ratio=4,
-        channel_ratio=8,
-        slow_pathway=dict(
-            type='resnet3d',
-            depth=50,
-            pretrained=None,
-            lateral=True,
-            fusion_kernel=7,
-            conv1_kernel=(1, 7, 7),
-            dilations=(1, 1, 1, 1),
-            conv1_stride_t=1,
-            pool1_stride_t=1,
-            inflate=(0, 0, 1, 1),
-            spatial_strides=(1, 2, 2, 1)),
-        fast_pathway=dict(
-            type='resnet3d',
-            depth=50,
-            pretrained=None,
-            lateral=False,
-            base_channels=8,
-            conv1_kernel=(5, 7, 7),
-            conv1_stride_t=1,
-            pool1_stride_t=1,
-            spatial_strides=(1, 2, 2, 1))),
+    backbone=dict(type='X3D', gamma_w=1, gamma_b=2.25, gamma_d=2.2),
     roi_head=dict(
         type='AVARoIHead',
         bbox_roi_extractor=dict(
@@ -38,9 +11,9 @@ model = dict(
             with_temporal_pool=True),
         bbox_head=dict(
             type='BBoxHeadAVA',
-            in_channels=2304,
-            num_classes=11,   # This part will be differnt with AVA
-            multilabel=False,  # This part will be differnt with AVA
+            in_channels=432,
+            num_classes=11,
+            multilabel=True,
             dropout_ratio=0.5)),
     train_cfg=dict(
         rcnn=dict(
@@ -157,7 +130,7 @@ data = dict(
 )
 data['test'] = data['val']
 
-optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.00001)
+optimizer = dict(type='SGD', lr=0.025, momentum=0.9, weight_decay=0.00001)
 
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
@@ -180,10 +153,11 @@ log_config = dict(
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = ('/home/jaeguk/workspace/logs/action_detection/'
-            'slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb/'
-            'ucf101-sampled_tiny')
-load_from = ('https://download.openmmlab.com/mmaction/detection/ava/'
-             'slowfast_kinetics_pretrained_r50_8x8x1_cosine_10e_ava22_rgb/'
-             'slowfast_kinetics_pretrained_r50_8x8x1_cosine_10e_ava22_rgb-b987b516.pth')
+            'x3d_kinetics_pretrained_ava_rgb/cosine/')
+load_from = (
+    'https://download.openmmlab.com/mmaction/recognition/x3d/facebook/'
+    'x3d_m_facebook_16x5x1_kinetics400_rgb_20201027-3f42382a.pth'
+)
 resume_from = None
 find_unused_parameters = False
+

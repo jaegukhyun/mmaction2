@@ -148,7 +148,7 @@ data = dict(
         data_prefix=data_root))
 data['test'] = data['val']
 
-optimizer = dict(type='SGD', lr=0.075, momentum=0.9, weight_decay=0.00001)
+optimizer = dict(type='SGD', lr=0.1, momentum=0.9, weight_decay=1e-5)
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 
 lr_config = dict(
@@ -169,7 +169,7 @@ log_config = dict(
     ])
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = ('/home/jaeguk/workspace/logs/'
+work_dir = ('/home/jaeguk/workspace/logs/action_detection/'
             'mvit_kinetics_pretrained_ava_rgb/ava/')
 load_from = (
     '/home/jaeguk/.cache/torch/hub/checkpoints/'

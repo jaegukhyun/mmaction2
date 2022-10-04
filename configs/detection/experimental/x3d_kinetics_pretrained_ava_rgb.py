@@ -116,7 +116,7 @@ data = dict(
         data_prefix=data_root))
 data['test'] = data['val']
 
-optimizer = dict(type='SGD', lr=0.075, momentum=0.9, weight_decay=0.00001)
+optimizer = dict(type='SGD', lr=0.1, momentum=0.9, weight_decay=1e-5)
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 
 lr_config = dict(
@@ -127,7 +127,7 @@ lr_config = dict(
     warmup_by_epoch=True,
     warmup_iters=2,
     warmup_ratio=0.1)
-total_epochs = 10
+total_epochs = 20
 checkpoint_config = dict(interval=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')
@@ -137,7 +137,7 @@ log_config = dict(
     ])
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = ('/home/jaeguk/workspace/logs/'
+work_dir = ('/home/jaeguk/workspace/logs/action_detection/'
             'x3d_kinetics_pretrained_ava_rgb/cosine/')
 load_from = (
     'https://download.openmmlab.com/mmaction/recognition/x3d/facebook/'

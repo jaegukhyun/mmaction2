@@ -7,16 +7,15 @@ import csv
 from random import shuffle
 
 
-def annot2json():
+def annot2json(dataset, valid_scen_num):
     '''
     convert pkl pre annotated bounding box information to coco style json file
     '''
 
-    dataset_name = 'JHMDB'
-    annot_pkl = f'/home/jaeguk/workspace/data/{dataset_name}/_annotations/JHMDB-GT.pkl'
-    frame_dir = f'/home/jaeguk/workspace/data/{dataset_name}/frames/'
-    train_json = f'/home/jaeguk/workspace/data/{dataset_name}/annotations/instances_train.json'
-    valid_json = f'/home/jaeguk/workspace/data/{dataset_name}/annotations/instances_valid.json'
+    annot_pkl = f'/home/jaeguk/workspace/data/{dataset}/_annotations/{dataset}-GT.pkl'
+    frame_dir = f'/home/jaeguk/workspace/data/{dataset}/frames/'
+    train_json = f'/home/jaeguk/workspace/data/{dataset}/annotations/instances_train.json'
+    valid_json = f'/home/jaeguk/workspace/data/{dataset}/annotations/instances_valid.json'
 
     train_categories = [{"id": 1, "name": "person"}]
     train_images = []
@@ -33,7 +32,7 @@ def annot2json():
     train_img_ids = {}
     valid_img_ids = {}
 
-    ext = 'png' if dataset_name in ['JHMDB'] else 'jpg'
+    ext = 'png' if dataset in ['JHMDB'] else 'jpg'
 
     with open(annot_pkl, 'rb') as f:
         info = pickle.load(f, encoding='latin1')
@@ -50,7 +49,7 @@ def annot2json():
             for idx, clip in enumerate(clip_dir):
                 if clip[0] == ".":
                     continue
-                if idx < len(os.listdir(os.path.join(frame_dir, action))) - 30:
+                if idx < len(os.listdir(os.path.join(frame_dir, action))) - valid_scen_num:
                     clip_status = 'train'
                 else:
                     clip_status = 'val'
@@ -128,11 +127,11 @@ def annot2json():
                 'images': valid_images, 'annotations': valid_annotations}
         json.dump(info, vjf, indent=4)
 
-def json2csv(name):
-    annot_root = '/home/jaeguk/workspace/data/JHMDB/annotations/'
+def json2csv(dataset, name):
+    annot_root = f'/home/jaeguk/workspace/data/{dataset}/annotations/'
     json_file = os.path.join(annot_root, f'instances_{name}.json')
-    csv_file = os.path.join(annot_root, f'JHMDB_{name}.csv')
-    pbtxt_file = os.path.join(annot_root, 'JHMDB_actionlist.pbtxt')
+    csv_file = os.path.join(annot_root, f'{dataset}_{name}.csv')
+    pbtxt_file = os.path.join(annot_root, f'{dataset}_actionlist.pbtxt')
     action_label = get_action_label(pbtxt_file)
     with open(json_file) as jf, open(csv_file, 'w') as cf:
         idx = 0
@@ -255,7 +254,12 @@ def print_frame_len(dataset):
                 if vid[0] == '.':
                     continue
                 frame_len = len(os.listdir(os.path.join(video_root, action, vid)))
-                len_dict[vid] = frame_len
+                len_dict[f'{action}/{vid}'] = frame_len
+
+    len_dict = dict(sorted(len_dict.items(), key=lambda x:x[1]))
+    with open(f'/home/jaeguk/workspace/data/{dataset}/annotations/{dataset}_timestamp.json', 'w') as f:
+        json.dump(len_dict, f)
+
     statics = len_dict.values()
     statics = np.asarray(list(statics))
     print(f'{dataset} Dataset Statistics')
@@ -324,10 +328,13 @@ def sample_from_json(name):
 
 if __name__ == '__main__':
     #get_pbtxt()
-    #validate_csv()
-    #print_frame_len()
-    annot2json()
-    name = sample_from_json('train')
-    json2csv(name)
-    name = sample_from_json('valid')
-    json2csv(name)
+    dataset = 'ucf101-sampled'
+    print_frame_len(dataset)
+    valid_scen_num = 1
+    annot2json(dataset, valid_scen_num)
+    json2csv(dataset, 'train')
+    json2csv(dataset, 'valid')
+    #name = sample_from_json('train')
+    #json2csv(name)
+    #name = sample_from_json('valid')
+    #json2csv(name)
