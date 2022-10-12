@@ -178,6 +178,8 @@ def main():
         cfg.model,
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
+    # TODO Check init_weights does not affect other detection models
+    model.init_weights()
 
     if len(cfg.module_hooks) > 0:
         register_module_hooks(model, cfg.module_hooks)
