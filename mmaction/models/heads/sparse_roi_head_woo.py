@@ -63,7 +63,6 @@ if mmdet_imported:
             proposal_list = [proposal_boxes[i] for i in range(len(proposal_boxes))]
             object_feats = proposal_features
             all_stage_loss = {}
-            actor_proposals = None
             for stage in range(self.num_stages):
                 rois = bbox2roi(proposal_list)
                 bbox_results = self._bbox_forward(stage, x, rois, object_feats,
@@ -90,14 +89,6 @@ if mmdet_imported:
                 cls_score = bbox_results['cls_score']
                 decode_bbox_pred = bbox_results['decode_bbox_pred']
 
-                pos_bboxes = decode_bbox_pred[bbox_targets[-1].sum(dim=-1)>0]
-                pos_bboxes_inds = rois[bbox_targets[-1].sum(dim=-1)>0][:, :1]
-                pos_bboxes = torch.cat((pos_bboxes_inds, pos_bboxes), dim=1)
-                if actor_proposals is None:
-                    actor_proposals = pos_bboxes
-                else:
-                    actor_proposals = torch.cat((actor_proposals, pos_bboxes), dim=0)
-
                 single_stage_loss = self.bbox_head[stage].loss(
                     cls_score.view(-1, cls_score.size(-1)),
                     decode_bbox_pred.view(-1, 4),
@@ -115,7 +106,11 @@ if mmdet_imported:
                                         self.stage_loss_weights[stage]
                 object_feats = bbox_results['object_feats']
 
-            return all_stage_loss, actor_proposals
+            pos_bboxes = decode_bbox_pred[bbox_targets[-1].sum(dim=-1)>0]
+            pos_bboxes_inds = rois[bbox_targets[-1].sum(dim=-1)>0][:, :1]
+            pos_bboxes = torch.cat((pos_bboxes_inds, pos_bboxes), dim=1)
+
+            return all_stage_loss, pos_bboxes
 
         def simple_test(self,
                         x,
@@ -143,7 +138,6 @@ if mmdet_imported:
                 ]] * num_imgs
                 return bbox_results
 
-            # Why they only get final stage's result?
             for stage in range(self.num_stages):
                 rois = bbox2roi(proposal_list)
                 bbox_results = self._bbox_forward(stage, x, rois, object_feats,
@@ -170,6 +164,7 @@ if mmdet_imported:
                 det_bboxes.append(
                     torch.cat([bbox_pred_per_img, cls_score_per_img], dim=1))
 
+            # TODO Action threshold is hard coded
             bbox_results = [
                 det_bboxes[i][det_bboxes[i][:, 4] > 0.5][:, :4]
                 for i in range(num_imgs)

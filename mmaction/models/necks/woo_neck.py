@@ -13,6 +13,7 @@ except (ImportError, ModuleNotFoundError):
 @NECKS.register_module()
 class WOONeck(nn.Module):
     def __init__(self,
+                 feat_indices=None,
                  neck_2d=None,
                  neck_3d=None,
                  clip_len=32):
@@ -26,12 +27,14 @@ class WOONeck(nn.Module):
         else:
             self.neck_3d = None
 
+        self.feat_indices = feat_indices
         self.clip_len = clip_len
 
     def forward(self, x):
         if self.neck_3d is not None:
             x = self.neck_3d(x)
-        #TODO Enable dynamic selection of features_3d
+        if self.feat_indices is not None:
+            x = [x[i] for i in self.feat_indices]
         features_3d = x[-1]
 
         # Extract key frame features

@@ -214,6 +214,7 @@ class X3D(nn.Module):
     """
 
     def __init__(self,
+                 return_intermediate=False,
                  gamma_w=1.0,
                  gamma_b=1.0,
                  gamma_d=1.0,
@@ -238,6 +239,7 @@ class X3D(nn.Module):
         self.gamma_d = gamma_d
 
         self.pretrained = pretrained
+        self.return_intermediate = return_intermediate
         self.in_channels = in_channels
         # Hard coded, can be changed by gamma_w
         self.base_channels = 24
@@ -512,13 +514,19 @@ class X3D(nn.Module):
             torch.Tensor: The feature of the input
             samples extracted by the backbone.
         """
+        features = []
         x = self.conv1_s(x)
         x = self.conv1_t(x)
         for layer_name in self.res_layers:
             res_layer = getattr(self, layer_name)
             x = res_layer(x)
+            features.append(x)
         x = self.conv5(x)
-        return x
+        features.append(x)
+        if self.return_intermediate:
+            return features
+        else:
+            return features[-1]
 
     def train(self, mode=True):
         """Set the optimization status when training."""
