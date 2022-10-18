@@ -4,44 +4,20 @@ model = dict(
     type='SparseRCNNWOO',
     pretrained=False,
     backbone=dict(
-        type='ResNet3dSlowFast',
-        pretrained=None,
-        return_intermediate=True,
-        resample_rate=4,
-        speed_ratio=4,
-        channel_ratio=8,
-        slow_pathway=dict(
-            type='resnet3d',
-            depth=50,
-            pretrained=None,
-            lateral=True,
-            fusion_kernel=7,
-            conv1_kernel=(1, 7, 7),
-            dilations=(1, 1, 1, 1),
-            conv1_stride_t=1,
-            pool1_stride_t=1,
-            inflate=(0, 0, 1, 1)),
-        fast_pathway=dict(
-            type='resnet3d',
-            depth=50,
-            pretrained=None,
-            lateral=False,
-            base_channels=8,
-            conv1_kernel=(5, 7, 7),
-            conv1_stride_t=1,
-            pool1_stride_t=1)),
+        type='MoViNet',
+        name="MoViNetA0",
+        return_intermediate=True),
     neck=dict(
         type='WOONeck',
         neck_2d=dict(
             type='FPN',
-            in_channels=[352, 704, 1408, 2304],
+            in_channels=[56, 56, 104, 480],
             out_channels=256,
             start_level=0,
             add_extra_convs='on_input',
             num_outs=4),
-        neck_3d=dict(
-            type='SLOWFASTFUSE',
-            with_temporal_pool=False)),
+        neck_3d=None,
+        feat_indices=[-10,-6,-2,-1]),
     rpn_head=dict(
         type='EmbeddingRPNHeadWOO',
         num_proposals=num_proposals,
@@ -76,8 +52,8 @@ model = dict(
                     input_feat_shape=7,
                     act_cfg=dict(type='ReLU', inplace=True),
                     norm_cfg=dict(type='LN')),
-                loss_bbox=dict(type='L1Loss', loss_weight=5.0),
-                loss_iou=dict(type='GIoULoss', loss_weight=2.0),
+                loss_bbox=dict(type='L1Loss', loss_weight=1.0),
+                loss_iou=dict(type='GIoULoss', loss_weight=1.0),
                 loss_cls=dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=True,
@@ -96,7 +72,7 @@ model = dict(
             with_temporal_pool=True),
         bbox_head=dict(
             type='BBoxHeadAVA',
-            in_channels=2304,
+            in_channels=480,
             num_classes=11,
             multilabel=False,
             dropout_ratio=0.5)),
@@ -186,7 +162,7 @@ val_pipeline = [
 ]
 
 data = dict(
-    videos_per_gpu=4,
+    videos_per_gpu=8,
     workers_per_gpu=4,
     val_dataloader=dict(videos_per_gpu=1),
     test_dataloader=dict(videos_per_gpu=1),
@@ -230,17 +206,17 @@ optimizer_config = dict(grad_clip=dict(max_norm=1, norm_type=2))
 
 lr_config = dict(
     policy='step',
-    step=[40, 45],
+    step=[10, 15],
     warmup='linear',
     warmup_by_epoch=True,
     warmup_iters=1,
     warmup_ratio=0.1)
-total_epochs = 50
+total_epochs = 20
 checkpoint_config = dict(save_last=True, max_keep_ckpts=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')
 log_config = dict(
-    interval=10, hooks=[
+    interval=5, hooks=[
         dict(type='TextLoggerHook'),
     ])
 dist_params = dict(backend='nccl')
@@ -248,6 +224,6 @@ log_level = 'INFO'
 work_dir = ('./work_dirs/ava/'
             'yowo_slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb')
 load_from = ('/home/jaeguk/.cache/torch/hub/checkpoints/'
-             'woo_slowfastr50_8x8x1_ava_sparsercnn_coco.pth')
+             'woo_movinet_kinetics_sparsercnn_coco.pth')
 resume_from = None
 find_unused_parameters = False

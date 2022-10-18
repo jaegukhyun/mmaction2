@@ -1,4 +1,4 @@
-num_stages = 1
+num_stages = 6
 num_proposals = 100
 model = dict(
     type='SparseRCNNWOO',
@@ -54,8 +54,8 @@ model = dict(
                     input_feat_shape=7,
                     act_cfg=dict(type='ReLU', inplace=True),
                     norm_cfg=dict(type='LN')),
-                loss_bbox=dict(type='L1Loss', loss_weight=10.0),
-                loss_iou=dict(type='GIoULoss', loss_weight=4.0),
+                loss_bbox=dict(type='L1Loss', loss_weight=1.0),
+                loss_iou=dict(type='GIoULoss', loss_weight=1.0),
                 loss_cls=dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=True,
@@ -209,12 +209,12 @@ optimizer_config = dict(grad_clip=dict(max_norm=1, norm_type=2))
 
 lr_config = dict(
     policy='step',
-    step=[35, 45],
+    step=[10, 15],
     warmup='linear',
     warmup_by_epoch=True,
     warmup_iters=1,
     warmup_ratio=0.1)
-total_epochs = 50
+total_epochs = 20
 checkpoint_config = dict(save_last=True, max_keep_ckpts=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')

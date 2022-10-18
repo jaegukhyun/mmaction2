@@ -135,8 +135,8 @@ dataset_type = 'JHMDBDataset'
 data_root = '/home/jaeguk/workspace/data/JHMDB/frames'
 anno_root = '/home/jaeguk/workspace/data/JHMDB/annotations'
 
-ann_file_train = f'{anno_root}/JHMDB_train_105.csv'
-ann_file_val = f'{anno_root}/JHMDB_valid_42.csv'
+ann_file_train = f'{anno_root}/JHMDB_train.csv'
+ann_file_val = f'{anno_root}/JHMDB_valid.csv'
 
 exclude_file_train = None
 exclude_file_val = None
@@ -188,7 +188,7 @@ val_pipeline = [
 ]
 
 data = dict(
-    videos_per_gpu=4,
+    videos_per_gpu=8,
     workers_per_gpu=4,
     val_dataloader=dict(videos_per_gpu=1),
     test_dataloader=dict(videos_per_gpu=1),
@@ -227,19 +227,17 @@ data = dict(
 )
 data['test'] = data['val']
 
-# optimizer = dict(type='SGD', lr=1e-4, momentum=0.9, weight_decay=0.00001)
-# optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 optimizer = dict(type='AdamW', lr=0.000025, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=1, norm_type=2))
 
 lr_config = dict(
     policy='step',
-    step=[35, 45],
+    step=[10, 15],
     warmup='linear',
     warmup_by_epoch=True,
     warmup_iters=1,
     warmup_ratio=0.1)
-total_epochs = 50
+total_epochs = 20
 checkpoint_config = dict(interval=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')

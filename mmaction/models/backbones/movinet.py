@@ -612,11 +612,18 @@ class MoViNetBase(nn.Module):
             nn.init.zeros_(m.bias)
 
     def _forward_impl(self, x: Tensor) -> Tensor:
+        features = []
         x = self.conv1(x)
-        x = self.blocks(x)
+        for block in self.blocks:
+            x = block(x)
+            features.append(x)
         x = self.conv7(x)
+        features.append(x)
 
-        return x
+        if self.return_intermediate:
+            return features
+        else:
+            return features[-1]
 
     def forward(self, x: Tensor) -> Tensor:
         self.clean_activation_buffers()
@@ -647,7 +654,8 @@ class MoViNetBase(nn.Module):
 class MoViNet(MoViNetBase):
     def __init__(self,
                  name: str = "MoViNetA0",
-                 causal: bool = False):
+                 causal: bool = False,
+                 return_intermediate: bool = False):
         assert name in ["MoViNetA0", "MoViNetA1"]
 
         cfg = CfgNode()
@@ -755,6 +763,8 @@ class MoViNet(MoViNetBase):
 
             cfg.dense9 = CfgNode()
             cfg.dense9.hidden_dim = 2048
+
+        self.return_intermediate = return_intermediate
 
         super(MoViNet, self).__init__(cfg, causal=causal)
 
