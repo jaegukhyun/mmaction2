@@ -4,22 +4,20 @@ model = dict(
     type='SparseRCNNWOO',
     pretrained=False,
     backbone=dict(
-        type='X3D',
-        return_intermediate=True,
-        gamma_w=1,
-        gamma_b=2.25,
-        gamma_d=2.2),
+        type='MoViNet',
+        name="MoViNetA0",
+        return_intermediate=True),
     neck=dict(
         type='WOONeck',
         neck_2d=dict(
             type='FPN',
-            in_channels=[48, 96, 192, 432],
+            in_channels=[56, 56, 104, 480],
             out_channels=256,
             start_level=0,
             add_extra_convs='on_input',
             num_outs=4),
         neck_3d=None,
-        feat_indices=[1,2,3,4]),
+        feat_indices=[-10,-6,-2,-1]),
     rpn_head=dict(
         type='EmbeddingRPNHeadWOO',
         num_proposals=num_proposals,
@@ -54,8 +52,8 @@ model = dict(
                     input_feat_shape=7,
                     act_cfg=dict(type='ReLU', inplace=True),
                     norm_cfg=dict(type='LN')),
-                loss_bbox=dict(type='L1Loss', loss_weight=5.0),
-                loss_iou=dict(type='GIoULoss', loss_weight=2.0),
+                loss_bbox=dict(type='L1Loss', loss_weight=1.0),
+                loss_iou=dict(type='GIoULoss', loss_weight=1.0),
                 loss_cls=dict(
                     type='CrossEntropyLoss',
                     use_sigmoid=True,
@@ -74,8 +72,8 @@ model = dict(
             with_temporal_pool=True),
         bbox_head=dict(
             type='BBoxHeadAVA',
-            in_channels=432,
-            num_classes=11,
+            in_channels=480,
+            num_classes=22,
             multilabel=False,
             dropout_ratio=0.5)),
     train_cfg=dict(
@@ -108,22 +106,22 @@ model = dict(
     test_cfg=dict(rpn=None, rcnn=dict(max_per_img=num_proposals, action_thr=0.002)))
 
 dataset_type = 'JHMDBDataset'
-data_root = '/home/jaeguk/workspace/data/ucf101-sampled/frames'
-anno_root = '/home/jaeguk/workspace/data/ucf101-sampled/annotations'
+data_root = '/home/jaeguk/workspace/data/JHMDB/frames'
+anno_root = '/home/jaeguk/workspace/data/JHMDB/annotations'
 
-ann_file_train = f'{anno_root}/ucf101-sampled_train.csv'
-ann_file_val = f'{anno_root}/ucf101-sampled_valid.csv'
+ann_file_train = f'{anno_root}/JHMDB_train_105.csv'
+ann_file_val = f'{anno_root}/JHMDB_valid_42.csv'
 
 exclude_file_train = None
 exclude_file_val = None
 
-label_file = f'{anno_root}/ucf101-sampled_actionlist.pbtxt'
+label_file = f'{anno_root}/JHMDB_actionlist.pbtxt'
 
 proposal_file_train = None
 proposal_file_val = None
 
 img_norm_cfg = dict(
-    mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_bgr=False)
+    mean=[123.675, 226.28, 103.53], std=[58.395, 57.12, 57.375], to_bgr=False)
 
 train_pipeline = [
     dict(type='SampleAVAFrames', clip_len=32, frame_interval=1),
@@ -164,7 +162,7 @@ val_pipeline = [
 ]
 
 data = dict(
-    videos_per_gpu=6,
+    videos_per_gpu=8,
     workers_per_gpu=4,
     val_dataloader=dict(videos_per_gpu=1),
     test_dataloader=dict(videos_per_gpu=1),
@@ -177,11 +175,11 @@ data = dict(
         proposal_file=proposal_file_train,
         person_det_score_thr=0.5,
         data_prefix=data_root,
-        filename_tmpl='{:05}.jpg',
+        filename_tmpl='{:05}.png',
         timestamp_start=1,
-        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        timestamp_end='/home/jaeguk/workspace/data/JHMDB/annotations/JHMDB_timestamp.json',
         start_index=1,
-        num_classes=11,
+        num_classes=22,
         fps=1
     ),
     val=dict(
@@ -193,33 +191,32 @@ data = dict(
         proposal_file=proposal_file_val,
         person_det_score_thr=0.5,
         data_prefix=data_root,
-        filename_tmpl='{:05}.jpg',
+        filename_tmpl='{:05}.png',
         timestamp_start=1,
-        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        timestamp_end='/home/jaeguk/workspace/data/JHMDB/annotations/JHMDB_timestamp.json',
         start_index=1,
-        num_classes=11,
+        num_classes=22,
         fps=1
     )
 )
 data['test'] = data['val']
-
 
 optimizer = dict(type='AdamW', lr=0.000025, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=1, norm_type=2))
 
 lr_config = dict(
     policy='step',
-    step=[7, 9],
+    step=[80, 90],
     warmup='linear',
     warmup_by_epoch=True,
     warmup_iters=1,
     warmup_ratio=0.1)
-total_epochs = 10
+total_epochs = 100
 checkpoint_config = dict(save_last=True, max_keep_ckpts=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')
 log_config = dict(
-    interval=50, hooks=[
+    interval=5, hooks=[
         dict(type='TextLoggerHook'),
     ])
 dist_params = dict(backend='nccl')
@@ -227,6 +224,6 @@ log_level = 'INFO'
 work_dir = ('./work_dirs/ava/'
             'yowo_slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb')
 load_from = ('/home/jaeguk/.cache/torch/hub/checkpoints/'
-             'woo_x3d_kinetics_sparsercnn_coco.pth')
+             'woo_movinet_kinetics_sparsercnn_coco.pth')
 resume_from = None
 find_unused_parameters = False

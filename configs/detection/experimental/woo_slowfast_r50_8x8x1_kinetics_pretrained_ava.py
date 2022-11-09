@@ -35,7 +35,7 @@ model = dict(
         neck_2d=dict(
             type='FPN',
             in_channels=[352, 704, 1408, 2304],
-            out_channels=352,
+            out_channels=256,
             start_level=0,
             add_extra_convs='on_input',
             num_outs=4),
@@ -45,16 +45,16 @@ model = dict(
     rpn_head=dict(
         type='EmbeddingRPNHeadWOO',
         num_proposals=num_proposals,
-        proposal_feature_channel=352),
+        proposal_feature_channel=256),
     roi_head2d=dict(
         type='SparseRoIHeadWOO',
         num_stages=num_stages,
         stage_loss_weights=[1] * num_stages,
-        proposal_feature_channel=352,
+        proposal_feature_channel=256,
         bbox_roi_extractor=dict(
             type='SingleRoIExtractor',
             roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=2),
-            out_channels=352,
+            out_channels=256,
             featmap_strides=[4, 8, 16, 32]),
         bbox_head=[
             dict(
@@ -65,14 +65,14 @@ model = dict(
                 num_cls_fcs=1,
                 num_reg_fcs=3,
                 feedforward_channels=2048,
-                in_channels=352,
+                in_channels=256,
                 dropout=0.0,
                 ffn_act_cfg=dict(type='ReLU', inplace=True),
                 dynamic_conv_cfg=dict(
                     type='DynamicConv',
-                    in_channels=352,
+                    in_channels=256,
                     feat_channels=64,
-                    out_channels=352,
+                    out_channels=256,
                     input_feat_shape=7,
                     act_cfg=dict(type='ReLU', inplace=True),
                     norm_cfg=dict(type='LN')),
@@ -139,13 +139,13 @@ dataset_type = 'AVADataset'
 data_root = '/home/jaeguk/workspace/data/ava/frames'
 anno_root = '/home/jaeguk/workspace/data/ava/annotations'
 
-ann_file_train = f'{anno_root}/ava_train_v2.2.csv'
-ann_file_val = f'{anno_root}/ava_val_v2.2.csv'
+ann_file_train = f'{anno_root}/ava_train_v2.2_sampled_12.csv'
+ann_file_val = f'{anno_root}/ava_val_v2.2_sampled_3.csv'
 
 exclude_file_train = None
 exclude_file_val = None
 
-label_file = f'{anno_root}/ava_action_list_v2.2.pbtxt'
+label_file = f'{anno_root}/ava_action_list_v2.2_sampled.pbtxt'
 
 proposal_file_train = None
 proposal_file_val = None
@@ -187,7 +187,7 @@ val_pipeline = [
     dict(
         type='Collect',
         keys=['img'],
-        meta_keys=['img_shape', 'scale_factor'],
+        meta_keys=['original_shape','img_shape', 'scale_factor'],
         nested=True)
 ]
 
@@ -240,8 +240,7 @@ dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = ('./work_dirs/ava/'
             'yowo_slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb')
-load_from = ('https://download.openmmlab.com/mmaction/recognition/slowfast/'
-             'slowfast_r50_8x8x1_256e_kinetics400_rgb/'
-             'slowfast_r50_8x8x1_256e_kinetics400_rgb_20200716-73547d2b.pth')
+load_from = ('/home/jaeguk/.cache/torch/hub/checkpoints/'
+             'woo_slowfastr50_8x8x1_kinetics_sparsercnn_coco.pth')
 resume_from = None
 find_unused_parameters = False

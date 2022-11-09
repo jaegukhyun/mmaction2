@@ -248,6 +248,6 @@ log_level = 'INFO'
 work_dir = ('./work_dirs/ava/'
             'yowo_slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb')
 load_from = ('/home/jaeguk/.cache/torch/hub/checkpoints/'
-             'woo_slowfastr50_8x8x1_ava_sparsercnn_coco.pth')
+             'woo_slowfastr50_8x8x1_kinetics_sparsercnn_coco.pth')
 resume_from = None
 find_unused_parameters = False

@@ -109,8 +109,8 @@ dataset_type = 'JHMDBDataset'
 data_root = '/home/jaeguk/workspace/data/ucf101-sampled/frames'
 anno_root = '/home/jaeguk/workspace/data/ucf101-sampled/annotations'
 
-ann_file_train = f'{anno_root}/ucf101-sampled_train_50.csv'
-ann_file_val = f'{anno_root}/ucf101-sampled_valid_20.csv'
+ann_file_train = f'{anno_root}/ucf101-sampled_train.csv'
+ann_file_val = f'{anno_root}/ucf101-sampled_valid.csv'
 
 exclude_file_train = None
 exclude_file_val = None
@@ -206,12 +206,12 @@ optimizer_config = dict(grad_clip=dict(max_norm=1, norm_type=2))
 
 lr_config = dict(
     policy='step',
-    step=[10, 15],
+    step=[8, 9],
     warmup='linear',
     warmup_by_epoch=True,
     warmup_iters=1,
     warmup_ratio=0.1)
-total_epochs = 20
+total_epochs = 10
 checkpoint_config = dict(save_last=True, max_keep_ckpts=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')

@@ -75,7 +75,7 @@ model = dict(
         bbox_head=dict(
             type='BBoxHeadAVA',
             in_channels=432,
-            num_classes=11,
+            num_classes=22,
             multilabel=False,
             dropout_ratio=0.5)),
     train_cfg=dict(
@@ -108,16 +108,16 @@ model = dict(
     test_cfg=dict(rpn=None, rcnn=dict(max_per_img=num_proposals, action_thr=0.002)))
 
 dataset_type = 'JHMDBDataset'
-data_root = '/home/jaeguk/workspace/data/ucf101-sampled/frames'
-anno_root = '/home/jaeguk/workspace/data/ucf101-sampled/annotations'
+data_root = '/home/jaeguk/workspace/data/JHMDB/frames'
+anno_root = '/home/jaeguk/workspace/data/JHMDB/annotations'
 
-ann_file_train = f'{anno_root}/ucf101-sampled_train.csv'
-ann_file_val = f'{anno_root}/ucf101-sampled_valid.csv'
+ann_file_train = f'{anno_root}/JHMDB_train_105.csv'
+ann_file_val = f'{anno_root}/JHMDB_valid_42.csv'
 
 exclude_file_train = None
 exclude_file_val = None
 
-label_file = f'{anno_root}/ucf101-sampled_actionlist.pbtxt'
+label_file = f'{anno_root}/JHMDB_actionlist.pbtxt'
 
 proposal_file_train = None
 proposal_file_val = None
@@ -164,7 +164,7 @@ val_pipeline = [
 ]
 
 data = dict(
-    videos_per_gpu=6,
+    videos_per_gpu=4,
     workers_per_gpu=4,
     val_dataloader=dict(videos_per_gpu=1),
     test_dataloader=dict(videos_per_gpu=1),
@@ -177,11 +177,11 @@ data = dict(
         proposal_file=proposal_file_train,
         person_det_score_thr=0.5,
         data_prefix=data_root,
-        filename_tmpl='{:05}.jpg',
+        filename_tmpl='{:05}.png',
         timestamp_start=1,
-        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        timestamp_end='/home/jaeguk/workspace/data/JHMDB/annotations/JHMDB_timestamp.json',
         start_index=1,
-        num_classes=11,
+        num_classes=22,
         fps=1
     ),
     val=dict(
@@ -193,11 +193,11 @@ data = dict(
         proposal_file=proposal_file_val,
         person_det_score_thr=0.5,
         data_prefix=data_root,
-        filename_tmpl='{:05}.jpg',
+        filename_tmpl='{:05}.png',
         timestamp_start=1,
-        timestamp_end='/home/jaeguk/workspace/data/ucf101-sampled/annotations/ucf101-sampled_timestamp.json',
+        timestamp_end='/home/jaeguk/workspace/data/JHMDB/annotations/JHMDB_timestamp.json',
         start_index=1,
-        num_classes=11,
+        num_classes=22,
         fps=1
     )
 )
@@ -209,12 +209,12 @@ optimizer_config = dict(grad_clip=dict(max_norm=1, norm_type=2))
 
 lr_config = dict(
     policy='step',
-    step=[7, 9],
+    step=[80, 90],
     warmup='linear',
     warmup_by_epoch=True,
     warmup_iters=1,
     warmup_ratio=0.1)
-total_epochs = 10
+total_epochs = 100
 checkpoint_config = dict(save_last=True, max_keep_ckpts=1)
 workflow = [('train', 1)]
 evaluation = dict(interval=1, save_best='mAP@0.5IOU')
