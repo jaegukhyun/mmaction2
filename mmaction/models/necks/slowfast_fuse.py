@@ -20,7 +20,7 @@ class SLOWFASTFUSE(nn.Module):
         self.with_temporal_pool = with_temporal_pool
         self.temporal_pool_mode = temporal_pool_mode
 
-    def forward(self, feat):
+    def fuse(self, feat):
         assert len(feat) == 2
 
         maxT = max([x.shape[2] for x in feat])
@@ -39,6 +39,19 @@ class SLOWFASTFUSE(nn.Module):
         feat = torch.cat(feat, axis=1).contiguous()
 
         return feat
+
+    def forward(self, feat):
+        assert len(feat) == 2
+        if type(feat[0]) in [tuple, list]:
+            out = []
+            for f1, f2 in zip(feat[0], feat[1]):
+                out.append(self.fuse((f1, f2)))
+        elif type(feat[0]) == torch.Tensor:
+            out = self.fuse(feat)
+        else:
+            raise NotImplementedError(f'{type(feat[0])} is not supported, it should be tuple, list or Tensor')
+
+        return out
 
 
 if mmdet_imported:

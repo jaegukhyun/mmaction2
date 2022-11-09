@@ -18,10 +18,13 @@ from .tsn_head import TSNHead
 from .x3d_head import X3DHead
 from .movinet_head import MoViNetHead
 from .yolox_head_ava import YOLOXHeadAVA
+from .sparse_roi_head_woo import SparseRoIHeadWOO
+from .embedding_rpn_head_woo import EmbeddingRPNHeadWOO
 
 __all__ = [
     'TSNHead', 'I3DHead', 'BaseHead', 'TSMHead', 'SlowFastHead', 'SSNHead',
     'TPNHead', 'AudioTSNHead', 'X3DHead', 'BBoxHeadAVA', 'AVARoIHead',
     'FBOHead', 'LFBInferHead', 'TRNHead', 'TimeSformerHead', 'ACRNHead',
-    'STGCNHead', 'MoViNetHead', 'YOLOXHeadAVA'
+    'STGCNHead', 'MoViNetHead', 'YOLOXHeadAVA', 'SparseRoIHeadWOO',
+    'EmbeddingRPNHeadWOO'
 ]

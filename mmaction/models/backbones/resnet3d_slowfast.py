@@ -426,6 +426,7 @@ class ResNet3dSlowFast(nn.Module):
 
     def __init__(self,
                  pretrained,
+                 return_intermediate=False,
                  resample_rate=8,
                  speed_ratio=8,
                  channel_ratio=8,
@@ -450,6 +451,7 @@ class ResNet3dSlowFast(nn.Module):
                      pool1_stride_t=1)):
         super().__init__()
         self.pretrained = pretrained
+        self.return_intermediate = return_intermediate
         self.resample_rate = resample_rate
         self.speed_ratio = speed_ratio
         self.channel_ratio = channel_ratio
@@ -490,6 +492,8 @@ class ResNet3dSlowFast(nn.Module):
             tuple[torch.Tensor]: The feature of the input samples extracted
                 by the backbone.
         """
+        fast_features = []
+        slow_features = []
         x_slow = nn.functional.interpolate(
             x,
             mode='nearest',
@@ -521,8 +525,13 @@ class ResNet3dSlowFast(nn.Module):
                 conv_lateral = getattr(self.slow_path, lateral_name)
                 x_fast_lateral = conv_lateral(x_fast)
                 x_slow = torch.cat((x_slow, x_fast_lateral), dim=1)
+            fast_features.append(x_fast)
+            slow_features.append(x_slow)
 
-        out = (x_slow, x_fast)
+        if self.return_intermediate:
+            out = (fast_features, slow_features)
+        else:
+            out = (x_slow, x_fast)
 
         return out
 

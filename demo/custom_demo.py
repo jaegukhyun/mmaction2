@@ -49,7 +49,7 @@ def main():
     label_map = get_action_label(pbtxt)
 
     _config = os.path.join(mmdir, 'configs', 'detection', 'experimental',
-        f'yowo_slowfast_kinetics_pretrained_r50_8x8x1_20e_ava_rgb_{dataset}.py')
+        f'woo_slowfast_r50_8x8x1_kinetics_pretrained_ucf.py')
     config = mmcv.Config.fromfile(_config)
     val_pipeline = config.data.val.pipeline
 
@@ -59,8 +59,8 @@ def main():
 
     model = build_detector(config.model, test_cfg=config.get('test_cfg'))
     checkpoint = os.path.join(logdir,
-                              'yowo_slowfast_kinetics_pretrianed_r50_8x8x1_20e_ava_rgb_ucf101-sampled',
-                              'ucf_train', 'epoch_3.pth')
+                              'woo_slowfast_r50_8x8x1_kinetics_pretrained_ucf',
+                              'full_ucf', 'epoch_3.pth')
 
     load_checkpoint(model, checkpoint, map_location='cpu')
     model.cuda()
@@ -178,18 +178,27 @@ def main():
                 cv_img = cv.imread(os.path.join(frame_dir, image['file_name']))
                 _label = -1
                 score = 0
+                _annots = []
+                for annot in annotations:
+                    if annot['image_id'] == image_id:
+                        x1, y1, w, h = annot['bbox']
+                        _annots.append([x1, y1, w, h])
+
                 with torch.no_grad():
                     result = model(
                         return_loss=False,
                         img=[input_tensor],
                         img_metas=[[dict(img_shape=(new_h, new_w),
-                                         scale_factor=scale_factor)]],
+                                         scale_factor=scale_factor,
+                                         original_shape=(h, w))]],
                     )
                     result = result[0] # only handle single action
+                    breakpoint()
                     for i in range(len(result)):
                         if len(result[i]) == 0:
                             continue
                         x1,y1,x2,y2,score = result[i][0]
+                        breakpoint()
                         for k, v in label_map.items():
                             if int(v) == i + 1:
                                 _label = k
@@ -201,10 +210,10 @@ def main():
                             cv.putText(cv_img, f'{_label}: {score:.2f}', (p1[0] + 15, p1[1] + 15),
                                    cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv.LINE_AA)
                 print(f'[answer|perdict, score]: {action}|{_label}, {score:.2f}')
-                #for annot in annotations:
-                #    if annot['image_id'] == image_id:
-                #        x1, y1, w, h = annot['bbox']
-                #        cv.rectangle(cv_img, (int(x1), int(y1)), (int(x1 + w), int(y1 + h)), (255, 0, 0), 1)
+                # for annot in annotations:
+                #     if annot['image_id'] == image_id:
+                #         x1, y1, w, h = annot['bbox']
+                #         cv.rectangle(cv_img, (int(x1), int(y1)), (int(x1 + w), int(y1 + h)), (255, 0, 0), 1)
                 cv.imwrite(os.path.join(save_root, f'{action}_{idx}.jpg'), cv_img)
 
 
